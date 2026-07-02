@@ -2,9 +2,6 @@ nextcloud:
   host: rishlab.tailb96c63.ts.net
   username: admin
   password: Rish@363636
-  persistence:
-    enabled: true
-    size: 20Gi
   resources:
     requests:
       cpu: 100m
@@ -46,6 +43,11 @@ ingress:
       paths:
         - /
   tls: []
+
+persistence:
+  enabled: true
+  existingClaim: nextcloud-data
+  size: 256Gi
 
 cronjob:
   enabled: true
