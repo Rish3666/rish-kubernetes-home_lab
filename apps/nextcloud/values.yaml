@@ -9,6 +9,12 @@ nextcloud:
     limits:
       cpu: 1000m
       memory: 1Gi
+  configs:
+    ratelimit.config.php: |-
+      <?php
+      $CONFIG = array (
+        'ratelimit.protection.enabled' => false,
+      );
 
 internalDatabase:
   enabled: false
