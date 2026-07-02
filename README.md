@@ -8,7 +8,7 @@ Infrastructure-as-code for a single-node [K3s](https://k3s.io/) cluster running 
 
 | Tool    | Purpose                          | Install                                                         |
 |---------|----------------------------------|-----------------------------------------------------------------|
-| Linux   | Host OS (tested on Ubuntu 24.04) | —                                                               |
+| Linux   | Host OS (tested on Debian 13) | —                                                               |
 | K3s     | Lightweight Kubernetes           | `curl -sfL https://get.k3s.io \| sh -`                          |
 | Helm    | Kubernetes package manager       | `curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 \| bash` |
 | kubectl | Kubernetes CLI                   | Included with K3s (`kubectl` alias set via `export KUBECONFIG=/etc/rancher/k3s/k3s.yaml`) |
