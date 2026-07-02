@@ -14,6 +14,8 @@ nextcloud:
       <?php
       $CONFIG = array (
         'ratelimit.protection.enabled' => false,
+        'auth.bruteforce.protection.enabled' => false,
+        'auth.bruteforce.max-attempts' => 9999,
       );
 
 internalDatabase:
