@@ -1,0 +1,25 @@
+architecture: standalone
+
+auth:
+  enabled: true
+  password: YourStrongRedisPassword123!
+
+master:
+  persistence:
+    enabled: true
+    size: 5Gi
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+replica:
+  replicaCount: 0
+
+metrics:
+  enabled: false

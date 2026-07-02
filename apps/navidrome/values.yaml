@@ -1,0 +1,21 @@
+replicaCount: 1
+
+image:
+  repository: deluan/navidrome
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 4533
+
+storage:
+  music:
+    hostPath: /mnt/storage/music
+    size: 100Gi
+
+  data:
+    hostPath: /mnt/storage/navidrome
+    size: 5Gi
+
+timezone: Asia/Kolkata

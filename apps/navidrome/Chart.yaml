@@ -1,0 +1,7 @@
+apiVersion: v2
+name: navidrome
+description: Personal Navidrome Helm Chart
+type: application
+
+version: 0.1.0
+appVersion: "0.61.1"

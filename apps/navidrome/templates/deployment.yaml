@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: navidrome
+
+spec:
+  replicas: {{ .Values.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: navidrome
+
+  template:
+    metadata:
+      labels:
+        app: navidrome
+
+    spec:
+      containers:
+      - name: navidrome
+
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+        ports:
+        - containerPort: 4533
+
+        env:
+        - name: TZ
+          value: "{{ .Values.timezone }}"
+
+        - name: ND_MUSICFOLDER
+          value: "/music"
+
+        - name: ND_DATAFOLDER
+          value: "/data"
+
+        volumeMounts:
+
+        - name: music
+          mountPath: /music
+
+        - name: data
+          mountPath: /data
+
+      volumes:
+
+      - name: music
+        persistentVolumeClaim:
+          claimName: navidrome-music-pvc
+
+      - name: data
+        persistentVolumeClaim:
+          claimName: navidrome-data-pvc

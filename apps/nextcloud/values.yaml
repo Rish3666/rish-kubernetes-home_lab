@@ -1,0 +1,51 @@
+nextcloud:
+  host: rishlab.tailb96c63.ts.net
+  username: admin
+  password: Rish@363636
+  persistence:
+    enabled: true
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+internalDatabase:
+  enabled: false
+
+mariadb:
+  enabled: false
+
+externalDatabase:
+  enabled: true
+  type: mysql
+  host: mariadb.databases.svc.cluster.local
+  user: nextcloud
+  password: ChangeNextcloudPassword123!
+  database: nextcloud
+
+redis:
+  enabled: false
+
+externalRedis:
+  enabled: true
+  host: redis-master.databases.svc.cluster.local
+  port: "6379"
+  password: YourStrongRedisPassword123!
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  hosts:
+    - host: rishlab.tailb96c63.ts.net
+      paths:
+        - /
+  tls: []
+
+cronjob:
+  enabled: true
