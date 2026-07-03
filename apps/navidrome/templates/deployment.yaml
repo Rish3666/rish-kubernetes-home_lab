@@ -37,6 +37,12 @@ spec:
         - name: ND_DATAFOLDER
           value: "/data"
 
+        - name: ND_IMAGECACHESIZE
+          value: "500MB"
+
+        - name: ND_DOWNLOADRATELIMIT
+          value: "0"
+
         volumeMounts:
 
         - name: music
