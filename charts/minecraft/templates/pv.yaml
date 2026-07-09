@@ -1,0 +1,42 @@
+# ── PersistentVolume ────────────────────────────────────────────────────
+# WHY IT EXISTS:
+#   Pods are ephemeral. When a pod restarts, all local files are lost.
+#   A PersistentVolume (PV) provides durable storage that lives outside the
+#   pod lifecycle. This PV maps directly to /mnt/storage/minecraft on the
+#   external HDD so the world, mods, configs, and logs survive pod recreations.
+#
+# HOW IT WORKS:
+#   The PV is a cluster-wide resource. It advertises 50Gi of Filesystem storage.
+#   Any PVC that requests the matching storageClassName can bind to it.
+#   hostPath: type=DirectoryOrCreate means K3s will create the directory
+#   if it doesn't already exist, with ownership set by the pod's fsGroup.
+#
+# WHY hostPath:
+#   For a single-node homelab, hostPath is the simplest and most performant
+#   option — no NFS, no CSI driver, no network overhead. The pod reads/writes
+#   directly to the HDD. This would NOT work in a multi-node cluster.
+#
+# WHY Retain:
+#   Retain means "don't delete the data when the PV is released." If you
+#   helm uninstall the Minecraft chart, the PVC is deleted, the PV is
+#   released, but the data stays on disk. You can reclaim it later by
+#   creating a new PV pointing to the same path.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "minecraft.fullname" . }}-pv
+  annotations:
+    "helm.sh/resource-policy": keep
+  labels:
+    {{- include "minecraft.labels" . | nindent 4 }}
+spec:
+  capacity:
+    storage: {{ .Values.storage.size }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: {{ .Values.storage.reclaimPolicy }}
+  storageClassName: {{ include "minecraft.fullname" . }}-storage
+  hostPath:
+    path: {{ .Values.storage.hostPath }}
+    type: DirectoryOrCreate

@@ -1,0 +1,149 @@
+# ── minecraft/values.yaml ──────────────────────────────────────────────────
+# All configuration for the Fabric Minecraft server with Zombie Apocalypse modpack.
+# Every value is overridable at install/upgrade time with --set or --values.
+
+# ── Replica count ──────────────────────────────────────────────────────────
+# Must be 1 for a stateful Minecraft server (world is local on disk).
+# Multi-replica requires shared world storage + sync plugins.
+replicaCount: 1
+
+# ── Image ────────────────────────────────────────────────────────────────────────
+# itzg/minecraft-server is the de facto Docker image for Minecraft servers.
+# It handles version detection, modloader installation, modpack downloads, and more
+# through environment variables — no manual file manipulation needed.
+image:
+  repository: itzg/minecraft-server
+  tag: "java17"
+  pullPolicy: IfNotPresent
+
+# ── Server type & version ─────────────────────────────────────────────────────
+# TYPE selects the server software. "MODRINTH" tells the image to use the
+# Modrinth modpack system. MODRINTH_MODPACK is the project slug from the URL.
+# VERSION is the Minecraft version the modpack targets.
+minecraft:
+  type: MODRINTH
+  version: "1.20.1"
+  modpack:
+    # Zombie Apocalypse — slug from https://modrinth.com/modpack/zombie--apocalypse
+    # This tells the image to automatically download and install the modpack.
+    project: zombie--apocalypse
+    # Use the latest release. Set to "beta" or "alpha" for pre-release versions.
+    versionType: release
+    # The modpack requires the Fabric mod loader
+    loader: fabric
+
+# ── Java memory ──────────────────────────────────────────────────────────────────
+# For 8GB total RAM: allocate 4G to the JVM, leaving 4G for the OS and K3s.
+# With 5-10 players, 4G is generous for Fabric 1.20.1.
+# JVM options use Aikar's flags tuned for G1GC on low-memory servers.
+memory: "4G"
+jvmOptions: "-XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1 -Dusing.aikars.flags=https://mcflags.emc.gs -Daikars.new.flags=true"
+
+# ── World & gameplay ────────────────────────────────────────────────────────────
+world:
+  # Directory name inside /data where the world is stored.
+  levelName: "world"
+  # Leave empty for random seed.
+  seed: ""
+  # DEFAULT | FLAT | LARGEBIOMES | AMPLIFIED | CUSTOMIZED
+  type: DEFAULT
+  # JSON for superflat or custom world generation.
+  generatorSettings: ""
+  # survival | creative | adventure | spectator
+  mode: survival
+  # peaceful | easy | normal | hard
+  difficulty: hard
+  pvp: true
+  allowFlight: false
+  hardcore: false
+  maxPlayers: 10
+  viewDistance: 8
+  simulationDistance: 6
+  motd: "§l§4Zombie Apocalypse §r§8| §fRishLab"
+  enableCommandBlock: false
+  spawnProtection: 0
+  maxWorldSize: 29999984
+  onlineMode: true
+
+  # ── Whitelist ──────────────────────────────────────────────────────────────
+  # Set to true to restrict access to whitelistPlayers only.
+  whitelist: false
+  whitelistPlayers: []
+  # Ops / admins — Minecraft usernames.
+  ops: []
+
+# ── RCON ──────────────────────────────────────────────────────────────────────
+rcon:
+  enabled: true
+  # Leave empty to auto-generate a random password (stored in a Secret).
+  password: ""
+  port: 25575
+
+# ── Service ───────────────────────────────────────────────────────────────────
+# For K3s, NodePort works reliably. hostPort doesn't bind on K3s's built-in proxy.
+service:
+  type: NodePort
+  port: 25565
+  nodePort: 31765
+
+# ── Backup ──────────────────────────────────────────────────────────────────────
+# CronJob schedule for automatic backups of /data/world.
+backup:
+  # cronsun format: minute hour day month day-of-week
+  schedule: "0 */6 * * *"
+  # Number of most recent backups to keep on disk.
+  keep: 24
+
+# ── Storage ──────────────────────────────────────────────────────────────────
+# PersistentVolume backed by /mnt/storage/minecraft on the external HDD.
+# Set reclaimPolicy to Retain so the world survives Helm uninstall.
+storage:
+  hostPath: /mnt/storage/minecraft
+  size: 50Gi
+  reclaimPolicy: Retain
+
+# ── Resource limits & requests ──────────────────────────────────────────────────────
+# 8GB total RAM. The container requests 4G (JVM) and is capped at 5.5G.
+# The extra 1.5G covers off-heap, JVM overhead, and the OS inside the container.
+resources:
+  requests:
+    memory: "4G"
+    cpu: "2"
+  limits:
+    memory: "5.5G"
+    cpu: "4"
+
+# ── Probes ──────────────────────────────────────────────────────────────────────
+# TCP socket probes check if the Minecraft port is accepting connections.
+# Minecraft can take 30-90s to start (world generation, mod loading).
+# Startup probe gives a generous 5-minute window before restarting.
+probes:
+  startup:
+    initialDelaySeconds: 10
+    periodSeconds: 15
+    failureThreshold: 60
+  liveness:
+    initialDelaySeconds: 180
+    periodSeconds: 15
+    failureThreshold: 5
+  readiness:
+    initialDelaySeconds: 120
+    periodSeconds: 10
+    failureThreshold: 5
+
+# ── Security ──────────────────────────────────────────────────────────────────
+# Run as non-root user 1000 (default K3s user on Debian).
+# fsGroup ensures the PV at /mnt/storage/minecraft is writable by uid 1000.
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# ── Timezone ──────────────────────────────────────────────────────────────────
+timezone: Asia/Kolkata

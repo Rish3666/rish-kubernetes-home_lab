@@ -1,0 +1,33 @@
+# ── PersistentVolumeClaim ──────────────────────────────────────────────────
+# WHY IT EXISTS:
+#   A deployment cannot use a PV directly — it must use a PVC (PersistentVolumeClaim).
+#   The PVC is a request for storage. Kubernetes matches it to the PV with the
+#   same storageClassName and sufficient capacity.
+#   The Pod references the PVC in its volumes section, and Kubernetes binds them
+#   automatically.
+#
+# HOW IT WORKS:
+#   storageClassName matches the PV's class exactly — this is how the binding works.
+#   volumeName explicitly links to our PV so Helm knows exactly which disk to use.
+#   This prevents accidentally binding to a different PV with the same class.
+#
+# WHY ReadWriteOnce:
+#   Minecraft is single-replica. Only one pod reads/writes at a time.
+#   ReadWriteOnce = one node can mount this volume as read-write.
+#   ReadWriteMany is not needed.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "minecraft.fullname" . }}-pvc
+  annotations:
+    "helm.sh/resource-policy": keep
+  labels:
+    {{- include "minecraft.labels" . | nindent 4 }}
+spec:
+  storageClassName: {{ include "minecraft.fullname" . }}-storage
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
+  volumeName: {{ include "minecraft.fullname" . }}-pv

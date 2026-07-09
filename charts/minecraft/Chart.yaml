@@ -1,0 +1,11 @@
+apiVersion: v2
+name: minecraft
+description: Fabric Minecraft server with Modrinth modpack auto-install via itzg/minecraft-server
+type: application
+version: 0.1.0
+appVersion: "2026.7.0"
+home: https://github.com/itzg/docker-minecraft-server
+sources:
+  - https://github.com/itzg/docker-minecraft-server
+maintainers:
+  - name: rish

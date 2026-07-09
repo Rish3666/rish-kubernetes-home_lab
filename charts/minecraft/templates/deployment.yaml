@@ -1,0 +1,238 @@
+# ── Deployment ────────────────────────────────────────────────────────────────
+# WHY IT EXISTS:
+#   A Deployment manages a ReplicaSet which ensures a pod with the Minecraft container
+#   is always running. It handles rolling updates, self-healing (restart on crash),
+#   and scaling. For Minecraft, we use rollingUpdate with maxUnavailable=0 to
+#   ensure zero downtime during upgrades (the new pod starts before the old one stops).
+#
+# HOW THE IMAGE WORKS:
+#   itzg/minecraft-server starts with an init phase that:
+#     1. Detects TYPE=MODRINTH → connects to Modrinth API
+#     2. Downloads the Zombie Apocalypse modpack (.mrpack)
+#     3. Installs Fabric + the correct Minecraft version
+#     4. Installs all mods declared in the modpack
+#     5. Applies overrides (mod configs, world data if any)
+#     6. Generates server.properties from environment variables
+#     7. Creates eula.txt (auto-accepted via EULA=TRUE)
+#     8. Starts the actual Fabric server JVM
+#   On subsequent restarts, it skips the download if the modpack is already installed
+#   (unless the modpack version changed, in which case it upgrades).
+#
+# PROBES:
+#   TCP socket probes. The image doesn't expose an HTTP endpoint, but Minecraft
+#   accepts TCP connections on 25565 once the server is ready. A TCP probe
+#   is the cleanest way to check health.
+#   - startupProbe: generous 5-min window for first-time world generation
+#   - livenessProbe: if the socket stops responding, restart the pod
+#   - readinessProbe: only send traffic to the Service when the server is actually listening
+#
+# SECURITY:
+#   runAsNonRoot=true + uid=1000 matches the default Debian user. The PV at
+#   /mnt/storage/minecraft is chowned to 1000:1000 so the container can write.
+#   All Linux capabilities are dropped. No privilege escalation.
+#   readOnlyRootFilesystem=false because Minecraft writes to /data (the PV) and also
+#     needs to write to /tmp and /home/container for runtime files.
+#   terminationGracePeriodSeconds=120 gives Minecraft 2 minutes to save the world
+#   and shut down gracefully when the pod is being replaced.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "minecraft.fullname" . }}
+  labels:
+    {{- include "minecraft.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "minecraft.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "minecraft.labels" . | nindent 8 }}
+        {{- include "minecraft.selectorLabels" . | nindent 8 }}
+    spec:
+      terminationGracePeriodSeconds: 120
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+      containers:
+        - name: minecraft
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          ports:
+            - name: minecraft
+              containerPort: 25565
+              protocol: TCP
+            {{- if .Values.rcon.enabled }}
+            - name: rcon
+              containerPort: {{ .Values.rcon.port }}
+              protocol: TCP
+            {{- end }}
+
+          env:
+            - name: TZ
+              value: {{ .Values.timezone }}
+
+            # ── EULA ──────────────────────────────────────────────────────
+            # Minecraft's End User License Agreement. Set to TRUE to accept.
+            - name: EULA
+              value: "TRUE"
+
+            # ── Server type ──────────────────────────────────────────────────
+            # TYPE=MODRINTH tells the image to use the Modrinth modpack platform.
+            # MODRINTH_MODPACK is the project slug or URL.
+            - name: TYPE
+              value: {{ .Values.minecraft.type }}
+            - name: MODRINTH_MODPACK
+              value: {{ .Values.minecraft.modpack.project }}
+            - name: MODRINTH_MODPACK_VERSION_TYPE
+              value: {{ .Values.minecraft.modpack.versionType }}
+            - name: MODRINTH_LOADER
+              value: {{ .Values.minecraft.modpack.loader }}
+            - name: VERSION
+              value: {{ .Values.minecraft.version }}
+
+            # ── Memory ────────────────────────────────────────────────────────
+            # MEMORY sets both -Xms and -Xmx. JVM_OPTS appends additional flags.
+            # The image automatically builds the full Java command.
+            - name: MEMORY
+              value: {{ .Values.memory }}
+            - name: JVM_OPTS
+              value: {{ .Values.jvmOptions }}
+
+            # ── World properties ──────────────────────────────────────────────
+            - name: LEVEL
+              value: {{ .Values.world.levelName }}
+            {{- if .Values.world.seed }}
+            - name: SEED
+              value: "{{ .Values.world.seed }}"
+            {{- end }}
+            - name: LEVEL_TYPE
+              value: {{ .Values.world.type }}
+            {{- if .Values.world.generatorSettings }}
+            - name: GENERATOR_SETTINGS
+              value: {{ .Values.world.generatorSettings }}
+            {{- end }}
+            - name: MODE
+              value: {{ .Values.world.mode }}
+            - name: DIFFICULTY
+              value: {{ .Values.world.difficulty }}
+            - name: PVP
+              value: {{ .Values.world.pvp | quote }}
+            - name: ALLOW_FLIGHT
+              value: {{ .Values.world.allowFlight | quote }}
+            - name: HARDCORE
+              value: {{ .Values.world.hardcore | quote }}
+            - name: MAX_PLAYERS
+              value: {{ .Values.world.maxPlayers | quote }}
+            - name: VIEW_DISTANCE
+              value: {{ .Values.world.viewDistance | quote }}
+            - name: SIMULATION_DISTANCE
+              value: {{ .Values.world.simulationDistance | quote }}
+            - name: MOTD
+              value: {{ .Values.world.motd | quote }}
+            - name: ENABLE_COMMAND_BLOCK
+              value: {{ .Values.world.enableCommandBlock | quote }}
+            - name: SPAWN_PROTECTION
+              value: {{ .Values.world.spawnProtection | quote }}
+            - name: MAX_WORLD_SIZE
+              value: {{ .Values.world.maxWorldSize | quote }}
+            - name: ONLINE_MODE
+              value: {{ .Values.world.onlineMode | quote }}
+            - name: OVERRIDE_SERVER_PROPERTIES
+              value: "true"
+
+            # ── Whitelist & ops ─────────────────────────────────────────
+            # WHITELIST must be empty/unset to keep whitelist disabled.
+            # If set to any string, the image enables whitelist.
+            {{- if .Values.world.whitelistPlayers }}
+            - name: WHITELIST
+              value: {{ join "," .Values.world.whitelistPlayers | quote }}
+            {{- end }}
+            {{- if .Values.world.whitelist }}
+            - name: ENABLE_WHITELIST
+              value: "true"
+            {{- end }}
+            {{- if .Values.world.ops }}
+            - name: OPS
+              value: {{ join "," .Values.world.ops | quote }}
+            {{- end }}
+
+            # ── RCON ───────────────────────────────────────────────────────
+            {{- if .Values.rcon.enabled }}
+            - name: ENABLE_RCON
+              value: "true"
+            - name: RCON_PORT
+              value: {{ .Values.rcon.port | quote }}
+            - name: RCON_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "minecraft.fullname" . }}-rcon
+                  key: rcon-password
+            {{- else }}
+            - name: ENABLE_RCON
+              value: "false"
+            {{- end }}
+
+          # ── Resource limits ────────────────────────────────────────────────
+          {{- if .Values.resources }}
+          resources:
+            requests:
+              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
+          {{- end }}
+
+          # ── Security context ────────────────────────────────────────
+          securityContext:
+            runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.securityContext.runAsGroup }}
+            capabilities:
+              drop:
+                {{- range .Values.securityContext.capabilities.drop }}
+                - {{ . }}
+                {{- end }}
+            allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+            readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+
+          # ── Probes ─────────────────────────────────────────────────
+          {{- if .Values.probes }}
+          startupProbe:
+            tcpSocket:
+              port: minecraft
+            initialDelaySeconds: {{ .Values.probes.startup.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+
+          livenessProbe:
+            tcpSocket:
+              port: minecraft
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+
+          readinessProbe:
+            tcpSocket:
+              port: minecraft
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          {{- end }}
+
+          # ── Volume mounts ─────────────────────────────────────────────
+          volumeMounts:
+            - name: data
+              mountPath: /data
+
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "minecraft.fullname" . }}-pvc

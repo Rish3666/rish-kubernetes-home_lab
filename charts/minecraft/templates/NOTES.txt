@@ -1,0 +1,32 @@
+── Minecraft Server (Fabric + Zombie Apocalypse) ──
+
+📡 Connect at your node IP, port {{ .Values.service.port }}:
+  kubectl get nodes -o jsonpath='{.items[0].status.addresses[0].address}'
+  Connect with: <IP>:{{ .Values.service.port }}
+
+📦 Modpack: {{ .Values.minecraft.modpack.project }} ({{ .Values.minecraft.version }}, {{ .Values.minecraft.modpack.loader }})
+
+🔑 {{- if .Values.rcon.enabled }}
+   RCON password:
+   kubectl get secret {{ include "minecraft.fullname" . }}-rcon -n {{ .Release.Namespace }} -o jsonpath='{.data.rcon-password}' | base64 -d
+   echo
+   {{- else }}
+   RCON is disabled.
+   {{- end }}
+
+💾 Data directory: {{ .Values.storage.hostPath }}
+    Worlds, mods, configs persist here across restarts and upgrades.
+
+📜 Server log:
+  kubectl logs -f deployment/{{ include "minecraft.fullname" . }} -n {{ .Release.Namespace }}
+
+📂 Adding extra mods:
+  Copy .jar files to {{ .Values.storage.hostPath }}/mods/ on the host.
+  The itzg image picks them up on next restart.
+  Restart: kubectl rollout restart deployment/{{ include "minecraft.fullname" . }} -n {{ .Release.Namespace }}
+
+⏰ Automatic backups every {{ .Values.backup.schedule }} to {{ .Values.storage.hostPath }}/backups/.
+    Most recent {{ .Values.backup.keep }} backups kept.
+
+💡 Need help?
+  kubectl exec -it deployment/{{ include "minecraft.fullname" . }} -n {{ .Release.Namespace }} -- console

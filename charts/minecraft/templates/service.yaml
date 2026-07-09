@@ -1,0 +1,45 @@
+# ── Service ──────────────────────────────────────────────────────────────────
+# WHY IT EXISTS:
+#   Pods can restart and get new IPs. A Service provides a stable network endpoint
+#   (DNS name + IP) that stays the same regardless of pod restarts.
+#   Other pods in the cluster can reach "minecraft:25565" without knowing the pod IP.
+#
+# WHY NOT NodePort:
+#   NodePort allocates a high port (30000-32767) on every node. You'd need to
+#   remember that port or configure it manually. For a single-node cluster,
+#   hostPort on the Deployment is simpler — it directly opens port 25565 on
+#   the node's IP with no extra DNAT hops.
+#
+# WHY NOT Ingress:
+#   Ingress is for HTTP/HTTPS (layer 7). Minecraft uses raw TCP (layer 4).
+#   Traefik could route TCP with IngressRouteTCP, but for a direct server-to-client
+#   game, hostPort is the cleanest approach.
+#
+# HOW IT WORKS:
+#   ClusterIP-only service. Internal pods find it at "minecraft" by DNS.
+#   External players connect to the node IP :25565 (via hostPort on the deployment).
+#   RCON port (25575) is exposed for admin tools and future monitoring exporters.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "minecraft.fullname" . }}
+  labels:
+    {{- include "minecraft.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: minecraft
+      port: {{ .Values.service.port }}
+      targetPort: minecraft
+      protocol: TCP
+      {{- if .Values.service.nodePort }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
+    {{- if .Values.rcon.enabled }}
+    - name: rcon
+      port: {{ .Values.rcon.port }}
+      targetPort: rcon
+      protocol: TCP
+    {{- end }}
+  selector:
+    {{- include "minecraft.selectorLabels" . | nindent 4 }}
