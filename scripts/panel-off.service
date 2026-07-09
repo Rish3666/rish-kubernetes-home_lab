@@ -1,0 +1,12 @@
+[Unit]
+Description=Power off internal display panel via fbdev DPMS
+After=multi-user.target
+Before=getty@tty1.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'echo 4 > /sys/class/graphics/fb0/blank; echo 4 > /sys/class/backlight/intel_backlight/bl_power'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
