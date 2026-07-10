@@ -214,13 +214,23 @@ glance:
                   - url: https://ishadeed.com/feed.xml
                     title: Ahmad Shadeed
 
-              - type: rss
-                title: GitHub Activity
-                limit: 5
-                collapse-after: -1
-                feeds:
-                  - url: https://github.com/Rish3666.atom
-                    title: Rish3666
+              - type: custom-api
+                title: Recent Commits
+                url: https://api.github.com/users/Rish3666/events?per_page=5
+                cache: 5m
+                template: |
+                  <ul class="list list-gap-10 collapsible-container" data-collapse-after="5">
+                  {{ range .JSON.Array "" }}
+                    {{ if eq .String "type" "PushEvent" }}
+                      {{ range .JSON.Array "payload.commits" }}
+                        <li>
+                          <a class="size-h4 color-highlight" href="https://github.com/{{ $.JSON.String "repo.name" }}/commit/{{ .String "sha" }}" target="_blank" rel="noreferrer">{{ .String "message" | trunc 60 }}</a>
+                          <div class="size-h6 color-paragraph">{{ $.JSON.String "repo.name" }}</div>
+                        </li>
+                      {{ end }}
+                    {{ end }}
+                  {{ end }}
+                  </ul>
 
 # ── Probes ─────────────────────────────────────────────────────────────────
 # Kubernetes uses probes to know when your container is alive and ready.
