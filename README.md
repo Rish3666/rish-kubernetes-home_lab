@@ -30,6 +30,8 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 ├── apps/                    # Application Helm values & charts
 │   ├── nextcloud/           #   Nextcloud values (external DB)
 │   └── navidrome/           #   Navidrome local Helm chart
+├── charts/                  # Custom Helm charts
+│   └── glance/              #   Glance dashboard
 ├── databases/               # Centralized shared databases
 │   ├── mariadb/             #   MariaDB values
 │   └── redis/               #   Redis values
@@ -158,6 +160,20 @@ helm upgrade --install navidrome ./apps/navidrome \
   -n navidrome
 ```
 
+#### Glance Dashboard
+
+Glance is deployed via a local Helm chart at `charts/glance/`. It provides a unified dashboard with search, server stats, service monitoring, GitHub profile/commits, videos, and Hacker News:
+
+```bash
+kubectl create namespace glance
+
+helm upgrade --install glance ./charts/glance \
+  -n glance
+```
+
+Access via Tailscale Serve at `https://rishlab.tailb96c63.ts.net:4443`.
+```
+
 ---
 
 ## Customizing for Your Own Cluster
@@ -187,14 +203,17 @@ This cluster uses [Tailscale](https://tailscale.com/) for secure, private networ
 - **Traefik ingress controller** (K3s default, on port 80/443)
 - **Tailscale IP** (tailscale0 interface, accessible by any device on your tailnet)
 
-### Exposing Services
+### Tailscale Serve (Port-Based Access)
 
-| Service    | URL                                         |
-|------------|---------------------------------------------|
-| Nextcloud  | `http://rishlab.tailb96c63.ts.net`          |
-| Navidrome  | `http://music.tailb96c63.ts.net`            |
+Services are exposed via **[Tailscale Serve](https://tailscale.com/kb/1311/serve)** on distinct ports (tailnet only):
 
-For `*.tailb96c63.ts.net` subdomains to resolve on all devices (not just the node itself), enable **[Tailscale Serve](https://tailscale.com/kb/1311/serve)** in the admin console or use a reverse proxy.
+| Service    | URL                                             | Backend                        |
+|------------|-------------------------------------------------|--------------------------------|
+| Glance     | `https://rishlab.tailb96c63.ts.net:4443`        | `http://glance.glance:8080`    |
+| Navidrome  | `https://rishlab.tailb96c63.ts.net:4533`        | `http://navidrome.navidrome:4533` |
+| Nextcloud  | `https://rishlab.tailb96c63.ts.net:8443`        | `http://nextcloud.nextcloud:8080` |
+
+Port 443 on the Tailscale IP is blocked by K3s CNI iptables DNAT rules, so port-based access via Tailscale Serve is the primary tailnet access method. Each service is also accessible via Traefik Ingress on the cluster-internal `*.lab.local` hostnames.
 
 ### Traefik Dashboard
 
@@ -209,12 +228,13 @@ kubectl port-forward -n kube-system deployment/traefik 8080:9000
 
 ## Stack Overview
 
-| Component   | Namespace   | Purpose             | Deployment Method        |
-|-------------|-------------|---------------------|--------------------------|
-| MariaDB     | databases   | Relational DB       | Bitnami Helm chart       |
-| Redis       | databases   | Cache / session     | Bitnami Helm chart       |
-| Nextcloud   | nextcloud   | File sync & share   | Official Helm chart      |
-| Navidrome   | navidrome   | Music streaming     | Local Helm chart (hostPath) |
+| Component   | Namespace   | Purpose             | Deployment Method            |
+|-------------|-------------|---------------------|------------------------------|
+| MariaDB     | databases   | Relational DB       | Bitnami Helm chart           |
+| Redis       | databases   | Cache / session     | Bitnami Helm chart           |
+| Nextcloud   | nextcloud   | File sync & share   | Official Helm chart          |
+| Navidrome   | navidrome   | Music streaming     | Local Helm chart (hostPath)  |
+| Glance      | glance      | Dashboard / start page | Local Helm chart (charts/glance/) |
 
 ### Planned Additions
 
@@ -259,16 +279,19 @@ The password was encrypted with a different key. Use the Navidrome CLI to reset 
 kubectl exec -n navidrome deploy/navidrome -it -- /app/navidrome user edit --set-password -u <username> --datafolder /data
 ```
 
-### Tailscale subdomains don't resolve
+### Tailscale Serve port not accessible
 
-MagicDNS only resolves the machine hostname (e.g., `rishlab.tailb96c63.ts.net`). For `music.tailb96c63.ts.net` on devices without `tailscale serve`, add a hosts entry:
+Ensure Tailscale Serve is running with the correct backend IP:
 
 ```bash
-# On each client (Linux/Mac)
-echo "100.x.x.x music.tailb96c63.ts.net" >> /etc/hosts
+sudo tailscale serve status
 ```
 
-Or enable Tailscale Serve from the admin console.
+If the backend ClusterIP changed (e.g., after `helm delete`/`helm install`), update Tailscale Serve:
+
+```bash
+sudo tailscale serve --https=4443 --bg http://<new-clusterip>:8080
+```
 
 ---
 
