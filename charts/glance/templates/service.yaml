@@ -1,0 +1,47 @@
+{{- /* ── glance/templates/service.yaml ────────────────────────────────────
+
+WHY THIS FILE EXISTS:
+  A Service provides a stable network endpoint for a set of pods. Pods are
+  ephemeral — they get new IPs when restarted. The Service gives you a fixed
+  DNS name (e.g., "glance.default.svc.cluster.local") that always routes to
+  the current set of healthy pods matching its selector.
+
+  Other resources reach Glance through this Service. Traefik Ingress routes
+  to it. Other pods in the cluster can reach it as "glance:8080" or
+  "glance.namespace.svc.cluster.local:8080".
+
+WHY CLUSTERIP:
+  ClusterIP means the Service gets a virtual IP reachable only from inside
+  the cluster. External traffic goes through the Ingress (Traefik), which
+  does have access to the cluster network. This is the standard pattern:
+  Ingress → Service → Pods.
+
+  NodePort or LoadBalancer would expose Glance directly on the node's IP
+  and/or a cloud load balancer. That adds unnecessary attack surface when
+  Traefik is already handling ingress for all your apps.
+
+THE PORT MATTERS:
+  The Service port (8080) must match the container port (8080). We use
+  "targetPort: http" which refers to the named port in the container spec
+  (defined in deployment.yaml). Named ports are better than numeric ports
+  because:
+    1. They're self-documenting
+    2. You can change the numeric port in one place (the pod) without
+       updating the Service
+    3. Helm will error at template time if the name is misspelled
+*/ -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "glance.fullname" . }}
+  labels:
+    {{- include "glance.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "glance.selectorLabels" . | nindent 4 }}

@@ -1,0 +1,167 @@
+{{- /* ── glance/templates/deployment.yaml ─────────────────────────────────
+
+WHY A DEPLOYMENT AND NOT A POD:
+  A raw Pod is an immutable object — if it dies, it stays dead. A Deployment
+  manages a ReplicaSet, which creates and supervises Pods. If the Pod crashes,
+  the ReplicaSet creates a new one. If you change the Pod template (e.g., new
+  image tag), the Deployment performs a rolling update. This is the correct
+  abstraction for a stateless web application like Glance.
+
+WHY EACH FIELD EXISTS:
+
+  replicas: 1
+    One copy is enough for a homelab. Glance doesn't benefit from multiple
+    replicas since each caches independently. More replicas = more API calls
+    to RSS feeds = more chance of rate limiting.
+
+  strategy.type: RollingUpdate
+    Default strategy. Ensures zero-downtime updates. The old pod stays
+    running until the new one passes its readiness probe.
+
+  selector.matchLabels:
+    These labels MUST match the pod template labels. This is how the
+    ReplicaSet knows which pods it owns. If they don't match, the
+    Deployment won't create pods.
+
+  securityContext (pod level):
+    fsGroup: 1000 — Makes any mounted volumes group-writable by GID 1000.
+    Though we don't have persistent volumes, this is good practice.
+
+  containers[0].securityContext:
+    runAsNonRoot: true — Kubernetes enforces that the container process
+      does not run as UID 0 (root). If the image tries to start as root,
+      the pod won't start. Safety net.
+    runAsUser: 1000 / runAsGroup: 1000 — The Glance Docker image runs as
+      root by default (no USER directive in Dockerfile). We override this
+      to run as a non-root user. UID 1000 is commonly the first user on
+      Debian systems, but inside the container it's just an arbitrary
+      non-root numeric user.
+    capabilities.drop: [ALL] — Drop every Linux capability. Glance only
+      needs to open a TCP socket on port 8080. It doesn't need to change
+      ownership, set time, or do anything privileged. Dropping all
+      capabilities follows the principle of least privilege.
+    allowPrivilegeEscalation: false — Even if a vulnerability is found
+      in Glance, the attacker can't escalate to root inside the container.
+    readOnlyRootFilesystem: true — The container's filesystem is mounted
+      read-only. This prevents an attacker from modifying the binary or
+      writing malicious files. Glance writes cache data to /tmp, which we
+      handle with an emptyDir volume mounted at /tmp.
+
+  env:
+    TZ — Timezone for the container. Set it to your local time so that
+      logs and any time-based widgets display correctly.
+
+  ports:
+    8080 — Glance's default port, also exposed in the Dockerfile. The
+      Service will reference this by name "http".
+
+  volumeMounts:
+    - config (ConfigMap) — The glance.yml config file mounted as a read-only
+      file at /app/config/glance.yml. ConfigMap mounts are always read-only
+      by default, which is exactly what we want.
+    - tmp (emptyDir) — Glance needs a writable /tmp for runtime operations
+      (Go's temp files, HTTP response caching). emptyDir is a temporary
+      volume that exists only as long as the pod lives. It's writable even
+      when the root filesystem is read-only.
+
+  probes:
+    HTTP GET / on port 8080. Glance serves all pages, including the root
+    path "/". If it returns HTTP 200, the app is healthy. Simple and
+    effective.
+
+  resources:
+    Requests vs Limits explained in values.yaml. TL;DR: 128Mi/100m
+    guaranteed, burst to 256Mi/500m.
+*/ -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "glance.fullname" . }}
+  labels:
+    {{- include "glance.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      {{- include "glance.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "glance.labels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: TZ
+              value: {{ .Values.timezone | default "UTC" }}
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.monitoring.hostStats.enabled }}
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "glance.fullname" . }}-config
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.monitoring.hostStats.enabled }}
+        - name: proc
+          hostPath:
+            path: /proc
+            type: Directory
+        - name: sys
+          hostPath:
+            path: /sys
+            type: Directory
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

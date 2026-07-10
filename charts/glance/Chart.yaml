@@ -1,0 +1,54 @@
+# ── glance/Chart.yaml ──────────────────────────────────────────────────────
+# WHY THIS FILE EXISTS:
+#   Chart.yaml is the mandatory metadata file for every Helm chart. Helm reads
+#   this to know the chart's name, version, type, and what application it
+#   deploys. Without it, `helm install` and `helm package` will refuse to work.
+#
+#   Think of it as the package.json (npm), Cargo.toml (Rust), or
+#   setup.py (Python) for your Kubernetes application.
+#
+# ── apiVersion ─────────────────────────────────────────────────────────────
+#   v2 is the current Helm 3 API version. It supports all features including
+#   dependencies, type application/library, and the standard values files.
+#   There is no reason to use v1 anymore.
+#
+# ── name ───────────────────────────────────────────────────────────────────
+#   This becomes the default release name if you don't pass one with --name.
+#   It's also used in _helpers.tpl to generate resource names.
+#
+# ── description ────────────────────────────────────────────────────────────
+#   Human-readable summary. Shows in `helm list` and `helm search`.
+#
+# ── type ───────────────────────────────────────────────────────────────────
+#   "application" means this chart deploys an actual application (pods,
+#   services, etc.). "library" charts provide helper functions only and
+#   can't be installed directly. Glance is an application.
+#
+# ── version ────────────────────────────────────────────────────────────────
+#   The chart's own semantic version. Bump this when you change anything in
+#   the chart templates (not when Glance itself releases a new version).
+#   Helm uses this for upgrade/rollback logic.
+#
+# ── appVersion ─────────────────────────────────────────────────────────────
+#   The version of Glance itself. This is informational but also available
+#   as {{ .Chart.AppVersion }} in templates. The deployment template uses
+#   this as the default image tag unless overridden in values.yaml.
+#   Glance v0.8.5 is the latest stable release as of July 2026.
+apiVersion: v2
+name: glance
+description: A self-hosted dashboard that puts all your feeds in one place
+type: application
+version: 0.1.0
+appVersion: "v0.8.5"
+home: https://github.com/glanceapp/glance
+icon: https://raw.githubusercontent.com/glanceapp/glance/main/docs/images/preconfigured-page-preview.png
+sources:
+  - https://github.com/glanceapp/glance
+maintainers:
+  - name: rish
+keywords:
+  - dashboard
+  - rss
+  - self-hosted
+  - homelab
+  - glance

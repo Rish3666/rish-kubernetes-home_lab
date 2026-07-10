@@ -1,0 +1,81 @@
+{{- /* ── glance/templates/ingress.yaml ─────────────────────────────────────
+
+WHY THIS FILE EXISTS:
+  An Ingress exposes HTTP and HTTPS routes from outside the cluster to
+  services within the cluster. Without an Ingress (or a NodePort/LoadBalancer
+  Service), Glance would only be reachable via "kubectl port-forward" or
+  from other pods in the cluster.
+
+WHY THE CONDITIONAL:
+  {{- if .Values.ingress.enabled }} — The Ingress template is wrapped in a
+  conditional. During development, you might want to test Glance via
+  port-forward without creating an Ingress. Set "ingress.enabled: false"
+  (the default) to skip it entirely.
+
+WHY ANNOTATIONS:
+  The annotation "kubernetes.io/ingress.class: traefik" tells K3s's built-in
+  Traefik to process this Ingress resource. Without it, Traefik ignores the
+  Ingress and routes never get created. This is specific to K3s's Traefik
+  configuration — in other setups you might use "ingressClassName" instead.
+
+  You can add Traefik-specific annotations here:
+    - traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    - traefik.ingress.kubernetes.io/router.tls: "true"
+  These go in .Values.ingress.annotations in values.yaml.
+
+WHY pathType: Prefix:
+  Prefix means "match any path starting with /". This is the correct choice
+  for Glance since the entire app lives at the root. "Exact" would only
+  match "/" and miss "/index.html" or "/assets/style.css".
+
+HOW TRAEFIK AND TAILSCALE WORK TOGETHER:
+  In a typical Tailscale + K3s setup, you have two options:
+    1. Tailscale Serve — Tailscale terminates TLS and forwards HTTP to your
+       cluster. In this case, the Ingress handles routing inside the cluster.
+       No cert-manager needed because Tailscale provides the TLS cert.
+    2. Tailscale Funnel — Same but exposes to the public internet through
+       Tailscale's infrastructure.
+  Both work fine with this Ingress template. Just set the host to your
+  Tailscale machine name (e.g., "glance.tailnet-name.ts.net").
+*/ -}}
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "glance.fullname" . }}
+  labels:
+    {{- include "glance.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+        {{- range .hosts }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "glance.fullname" $ }}
+                port:
+                  number: {{ $.Values.service.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

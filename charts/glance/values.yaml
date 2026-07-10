@@ -1,0 +1,315 @@
+# ── glance/values.yaml ─────────────────────────────────────────────────────
+# WHY THIS FILE EXISTS:
+#   values.yaml is the default configuration for your Helm chart. It defines
+#   every knob, switch, and dial that the templates will use. Users override
+#   these values at install/upgrade time via:
+#     helm install ... --values my-custom-values.yaml
+#     helm install ... --set key=value
+#
+#   Think of values.yaml as the "configuration API" for your chart.
+#   Every value here should have a sensible default so that:
+#     helm install glance . -n glance
+#   works WITHOUT requiring any flags from the user.
+
+# ── Replica count ──────────────────────────────────────────────────────────
+# WHY: Glance is stateless (no DB, no local writes). It serves a dashboard
+# from memory. For a homelab, 1 replica is adequate. If you wanted HA you
+# could increase this, but Glance doesn't share state between instances —
+# each pod would independently fetch and cache data. That means more API
+# calls, not better reliability. Keep at 1.
+replicaCount: 1
+
+# ── Image ──────────────────────────────────────────────────────────────────
+image:
+  # Container registry + repository. The official Glance image.
+  repository: glanceapp/glance
+  # IfNotPresent: only pull if not already on the node. Saves bandwidth.
+  pullPolicy: IfNotPresent
+  # Overrides the default tag (which comes from .Chart.AppVersion = "0.8.5").
+  # Leave empty to use appVersion. Set explicitly to pin a version.
+  # Examples: "latest", "v0.8.5", "sha256:abc123..."
+  tag: ""
+
+# ── Image pull secrets ─────────────────────────────────────────────────────
+# Only needed if pulling from a private registry. Glance is public, so empty.
+imagePullSecrets: []
+
+# ── Name overrides ─────────────────────────────────────────────────────────
+# These let you control the naming convention for Kubernetes objects.
+# Leave empty to use the chart name + release name.
+nameOverride: ""
+fullnameOverride: ""
+
+# ── Pod annotations & labels ───────────────────────────────────────────────
+# Extra metadata attached to pods. Useful for monitoring (Prometheus auto-
+# discovery), mesh injection (Istio sidecars), or just tracking.
+podAnnotations: {}
+podLabels: {}
+
+# ── Security ───────────────────────────────────────────────────────────────
+# WHY podSecurityContext vs securityContext:
+#   - podSecurityContext: applies to ALL containers in the pod (filesystem
+#     group, SELinux options, etc.). The fsGroup ensures mounted volumes
+#     have the correct group ownership.
+#   - securityContext: per-container settings (runAsUser, capabilities, etc.)
+#
+# Glance's Dockerfile doesn't create a non-root user, so we run as uid 1000
+# (a standard non-root UID). We use securityContext to:
+#   1. Run as non-root (uid 1000)
+#   2. Drop ALL Linux capabilities (the app only needs network access)
+#   3. Prevent privilege escalation
+#   4. Make the root filesystem read-only (Glance only writes to /tmp for
+#      cached data; we mount an emptyDir there)
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  capabilities:
+    drop:
+      - ALL
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+
+# ── Service ────────────────────────────────────────────────────────────────
+# WHY ClusterIP:
+#   You use Traefik as your ingress controller. Traefik can route to ClusterIP
+#   services just fine. NodePort/LoadBalancer add unnecessary complexity and
+#   surface area. ClusterIP is internal-only, which is what we want.
+service:
+  type: ClusterIP
+  port: 8080
+
+# ── Ingress (Traefik) ──────────────────────────────────────────────────────
+# WHY Ingress over Traefik-specific CRDs:
+#   The standard networking.k8s.io/v1 Ingress resource works with Traefik,
+#   Nginx, HAProxy, and most ingress controllers. It's portable.
+#   Traefik-specific IngressRoute CRDs would lock you into Traefik.
+#
+#   But... Traefik does need an annotation to know this is the ingress
+#   controller to use (especially in K3s where Traefik is the default).
+ingress:
+  # Set to true when you're ready to expose Glance externally.
+  enabled: false
+  # Traefik is the default ingress controller in K3s. The className tells
+  # the ingress controller to pick up this Ingress. In K3s, "traefik" is
+  # the name of the default IngressClass.
+  className: traefik
+  # Optional annotations, e.g. for TLS cert-manager or Traefik-specific
+  # middlewares. Deprecated ingress.class annotations removed.
+  annotations: {}
+  # The hostname you'll access Glance at. Set this to your domain.
+  # Examples: "glance.lab.local", "glance.yourdomain.com", or a Tailscale
+  # MagicDNS name like "glance.tailnet-name.ts.net".
+  hosts:
+    - host: glance.lab.local
+      paths:
+        - path: /
+          pathType: Prefix
+  # TLS configuration. If you have cert-manager + Let's Encrypt set up,
+  # or if Tailscale Funnel handles TLS, you can leave this empty.
+  # For Tailscale Serve (which we use), TLS is handled by Tailscale itself.
+  tls: []
+
+# ── Glance Configuration ───────────────────────────────────────────────────
+# This is THE core config. Glance reads its dashboard layout, widgets,
+# theme, and all settings from a YAML file. We inject it via a ConfigMap
+# mounted at /app/config/glance.yml.
+#
+# The configMap section lets you control HOW the config is provided.
+# The glance.config section is the actual Glance YAML content.
+configMap:
+  # By default, we create a ConfigMap from values.glance.config.
+  # If you set create: false, the chart won't create a ConfigMap at all.
+  # This is useful if you manage glance.yml outside of Helm (e.g., using
+  # a Kubernetes Secrets Store CSI driver or external-secrets-operator).
+  create: true
+  # Optional annotations for the ConfigMap resource itself.
+  annotations: {}
+
+# ── Glance dashboard configuration ─────────────────────────────────────────
+# The actual content of glance.yml. This is a multi-line string that gets
+# placed verbatim into the ConfigMap. Edit this to customize your dashboard.
+#
+# This is a minimal working config that shows:
+#   - A calendar widget
+#   - An RSS feed
+#   - A hacker news widget
+#   - Weather
+#   - Stock market prices
+#
+# Full docs: https://github.com/glanceapp/glance/blob/main/docs/configuration.md
+glance:
+  config: |
+    pages:
+      - name: Home
+        width: wide
+        columns:
+          - size: full
+            widgets:
+              - type: search
+                search-engine: duckduckgo
+                autofocus: false
+                bangs:
+                  - title: YouTube
+                    shortcut: "!yt"
+                    url: https://www.youtube.com/results?search_query={QUERY}
+                  - title: GitHub
+                    shortcut: "!gh"
+                    url: https://github.com/search?q={QUERY}
+                  - title: Reddit
+                    shortcut: "!r"
+                    url: https://www.reddit.com/search?q={QUERY}
+
+              - type: server-stats
+                servers:
+                  - type: local
+                    name: rishlab
+
+              - type: monitor
+                cache: 1m
+                title: Services
+                sites:
+                  - title: Navidrome
+                    url: http://navidrome.navidrome:4533
+                    icon: mdi:music
+                  - title: Nextcloud
+                    url: http://nextcloud.nextcloud:8080
+                    icon: mdi:cloud
+                  - title: Glance
+                    url: http://glance.glance:8080
+                    icon: mdi:monitor-dashboard
+
+              - type: hacker-news
+                limit: 10
+                collapse-after: 5
+
+              - type: videos
+                channels:
+                  - UCXuqSBlHAE6Xw-yeJA0Tunw
+                  - UCR-DXc1voovS8nhAvccRZhg
+                  - UCsBjURrPoezykLs9EqgamOA
+                limit: 12
+                collapse-after-rows: 2
+
+          - size: small
+            widgets:
+              - type: calendar
+                first-day-of-week: monday
+
+              - type: rss
+                limit: 10
+                collapse-after: 3
+                cache: 12h
+                feeds:
+                  - url: https://selfh.st/rss/
+                    title: selfh.st
+                    limit: 4
+                  - url: https://ciechanow.ski/atom.xml
+                  - url: https://www.joshwcomeau.com/rss.xml
+                    title: Josh Comeau
+                  - url: https://samwho.dev/rss.xml
+                  - url: https://ishadeed.com/feed.xml
+                    title: Ahmad Shadeed
+
+              - type: rss
+                title: GitHub Activity
+                limit: 5
+                collapse-after: -1
+                feeds:
+                  - url: https://github.com/Rish3666.atom
+                    title: Rish3666
+
+# ── Probes ─────────────────────────────────────────────────────────────────
+# Kubernetes uses probes to know when your container is alive and ready.
+#
+# startupProbe:
+#   Checks if the app has started. Gives a slow-starting app time before
+#   the liveness probe kicks in. Glance starts in <1s typically.
+#
+# livenessProbe:
+#   If this fails, Kubernetes kills the pod and restarts it. We check the
+#   HTTP endpoint because that's Glance's public face.
+#
+# readinessProbe:
+#   If this fails, Kubernetes removes the pod from the Service's endpoints
+#   so no traffic is sent to it. Same check as liveness here.
+#
+# WHY HTTP probes:
+#   Glance serves HTTP on port 8080. An HTTP GET / is the simplest and most
+#   accurate health check. If Glance returns 200, it's working.
+#
+# WHY no startup probe:
+#   Glance starts in under a second. A startup probe adds unnecessary
+#   complexity. The liveness probe with a small initialDelaySeconds is
+#   sufficient. If you have many widgets that do initial fetches on boot,
+#   you can add a startup probe later.
+livenessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  timeoutSeconds: 3
+  failureThreshold: 5
+
+readinessProbe:
+  httpGet:
+    path: /
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# ── Resource limits & requests ─────────────────────────────────────────────
+# WHY these values:
+#   Your homelab has 8 GB RAM and an Intel Pentium. Glance is a lightweight
+#   Go binary with minimal JS. The official docs say it uses very little
+#   memory.
+#
+#   Requests: what the pod GUARANTEES to get. Kubernetes uses this for
+#   scheduling. We request 128Mi RAM and 100m CPU — very modest.
+#
+#   Limits: the pod can burst up to this but no higher. 256Mi RAM and 500m
+#   CPU should handle any widget-heavy dashboard. If you have 15+ widgets
+#   with aggressive refresh rates, you might need more.
+#
+#   Units:
+#     CPU: 100m = 0.1 vCPU core. 500m = 0.5 core.
+#     Memory: 128Mi = 128 mebibytes. 256Mi = 256 mebibytes.
+#
+#   On an 8GB Pentium box, these leave plenty of headroom for Navidrome,
+#   Minecraft, and Headlamp.
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# ── Monitoring / Host stats ────────────────────────────────────────────────
+# If enabled, mounts the host's /proc and /sys filesystems so the server-stats
+# widget shows the actual node's CPU/memory/disk usage (not just the
+# container's cgroup limits). Safe because these files are world-readable.
+# Only disable if you have strict security requirements.
+monitoring:
+  hostStats:
+    enabled: true
+
+# ── Node selection ─────────────────────────────────────────────────────────
+# Only schedule on specific nodes (by label). Useful if you have a mixed
+# cluster (e.g., ARM + x86). Empty = any node.
+nodeSelector: {}
+
+# ── Tolerations ────────────────────────────────────────────────────────────
+# Allow the pod to be scheduled on tainted nodes. Empty = no taints tolerated.
+tolerations: []
+
+# ── Affinity ───────────────────────────────────────────────────────────────
+# Controls pod placement relative to other pods or nodes.
+# Empty = no affinity rules.
+affinity: {}

@@ -1,0 +1,54 @@
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Glance — Your self-hosted dashboard                                   │
+│  {{ .Chart.Name }} {{ .Chart.AppVersion }} / Chart v{{ .Chart.Version }}               │
+└─────────────────────────────────────────────────────────────────────────┘
+
+📋 Dashboard URL:
+{{- if .Values.ingress.enabled }}
+  {{- range .Values.ingress.hosts }}
+    http{{ if $.Values.ingress.tls }}s{{ end }}://{{ .host }}
+  {{- end }}
+{{- else }}
+  Your Glance dashboard is running but NOT exposed via Ingress yet.
+  To access it temporarily, run:
+    kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "glance.fullname" . }} 8080:8080
+  Then visit http://localhost:8080
+
+  To expose it permanently, set ingress.enabled=true in values.yaml and upgrade:
+    helm upgrade -n {{ .Release.Namespace }} {{ .Release.Name }} . \
+      --set ingress.enabled=true \
+      --set ingress.hosts[0].host=glance.your-domain.com
+{{- end }}
+
+⚙️ Configuration:
+  Your dashboard layout is defined in the ConfigMap:
+    kubectl get cm -n {{ .Release.Namespace }} {{ include "glance.fullname" . }}-config -o yaml
+  Edit glance.yml in values.yaml, then upgrade:
+    helm upgrade -n {{ .Release.Namespace }} {{ .Release.Name }} .
+
+  Glance automatically reloads when the config file changes on disk.
+  However, ConfigMap updates are NOT automatically picked up by running
+  pods. You need to restart the pods after updating the ConfigMap:
+    kubectl rollout restart -n {{ .Release.Namespace }} deployment/{{ include "glance.fullname" . }}
+
+💡 Useful Commands:
+  # Watch pod status
+  kubectl get pods -n {{ .Release.Namespace }} -w
+
+  # View logs
+  kubectl logs -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "glance.name" . }}
+
+  # Open a shell in the container
+  kubectl exec -n {{ .Release.Namespace }} -it deployment/{{ include "glance.fullname" . }} -- sh
+
+  # Check the rendered config inside the container
+  kubectl exec -n {{ .Release.Namespace }} deployment/{{ include "glance.fullname" . }} -- cat /app/config/glance.yml
+
+  # Uninstall
+  helm uninstall -n {{ .Release.Namespace }} {{ .Release.Name }}
+
+🐛 Debugging:
+  - Pod won't start?  kubectl describe pod -n {{ .Release.Namespace }} -l app.kubernetes.io/name={{ include "glance.name" . }}
+  - Config invalid?   Check Glance logs for YAML parse errors
+  - Blank page?       Glance's default config might be minimal; check your glance.yml
+  - 404 errors?       If you changed service.port, update the Ingress backend port too

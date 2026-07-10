@@ -1,0 +1,60 @@
+{{- /* ── glance/templates/configmap.yaml ───────────────────────────────────
+
+WHY THIS FILE EXISTS:
+  Glance reads its dashboard configuration from a YAML file at
+  /app/config/glance.yml. We need to get that file into the container.
+  There are three ways to do this in Kubernetes:
+    1. Bake it into the image (bad — rebuild image for every config change)
+    2. Mount it from a hostPath (bad — ties you to a specific node)
+    3. Use a ConfigMap (correct — native Kubernetes, no rebuilds)
+
+  A ConfigMap is a Kubernetes API object that stores non-sensitive data as
+  key-value pairs. When we mount it into a pod, the data appears as files.
+  In our case, the key "glance.yml" becomes the file /app/config/glance.yml.
+
+WHY CONFIGMAP IS BETTER THAN BAKING INTO THE IMAGE:
+  1. Separation of concerns: The image team ships the binary; the ops team
+     manages config. No need to rebuild and push a new image to change a
+     dashboard widget.
+  2. Hot reload: Glance supports auto-reload when glance.yml changes on
+     disk. With ConfigMap + a rollout restart, you don't need to recreate
+     the pod — though Kubernetes doesn't auto-reload ConfigMaps into running
+     pods without a restart trigger (more on this in deployment.yaml).
+  3. Environment-specific config: Same chart, different ConfigMap per env
+     (dev/staging/prod). No image variants.
+  4. Audit trail: Changes to ConfigMaps are tracked in Kubernetes API
+     history, unlike "just edit the file in a running container".
+
+HOW HELM RENDERS IT:
+  The {{- if .Values.configMap.create }} guard lets users opt out if they
+  manage glance.yml through other means (e.g., external-secrets-operator
+  syncing from Vault, or a GitOps tool like ArgoCD writing the ConfigMap
+  separately).
+
+  The {{ .Values.glance.config | indent 4 }} block injects the user's
+  dashboard YAML directly into the ConfigMap data. Helm treats this as a
+  string, indents it by 4 spaces to match the YAML structure of the
+  ConfigMap resource itself.
+
+WHEN NOT TO USE A CONFIGMAP:
+  ConfigMap data is stored in plain text (base64-encoded in etcd, but not
+  encrypted). If you have API keys, passwords, or tokens in your Glance
+  config, use a Secret instead. But for the layout/theme/widget config,
+  ConfigMap is fine. If you have secrets, use the ${ENV_VAR} syntax in
+  glance.yml and set those vars via container env or a Secret-mounted env.
+*/ -}}
+{{- if .Values.configMap.create }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "glance.fullname" . }}-config
+  labels:
+    {{- include "glance.labels" . | nindent 4 }}
+  {{- with .Values.configMap.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  glance.yml: |
+{{ .Values.glance.config | indent 4 }}
+{{- end }}
