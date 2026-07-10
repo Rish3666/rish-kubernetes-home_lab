@@ -104,7 +104,6 @@ spec:
       {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      serviceAccountName: {{ include "glance.fullname" . }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
@@ -114,8 +113,6 @@ spec:
           env:
             - name: TZ
               value: {{ .Values.timezone | default "UTC" }}
-            - name: TOKEN_PATH
-              value: /var/run/secrets/kubernetes.io/serviceaccount/token
           ports:
             - name: http
               containerPort: 8080
