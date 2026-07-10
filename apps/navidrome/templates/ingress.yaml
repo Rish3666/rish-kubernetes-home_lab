@@ -8,10 +8,10 @@ spec:
   ingressClassName: traefik
 
   rules:
-  {{- if .Values.ingress.host }}
-  - host: {{ .Values.ingress.host }}
-  {{- end }}
-  - http:
+  - {{- if .Values.ingress.host }}
+    host: {{ .Values.ingress.host }}
+    {{- end }}
+    http:
       paths:
       - path: /
         pathType: Prefix
