@@ -203,7 +203,7 @@ glance:
           - size: small
             widgets:
               - type: html
-                content: |
+                source: |
                   <h3 class="size-h3 color-highlight margin-bottom-10">Todo</h3>
                   <ul class="list list-gap-5">
                     <li><input type="checkbox"> Fix Nextcloud HTTP redirect</li>
