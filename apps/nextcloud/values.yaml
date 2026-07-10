@@ -19,6 +19,11 @@ nextcloud:
         'auth.bruteforce.protection.enabled' => false,
         'auth.bruteforce.max-attempts' => 9999,
       );
+    overwriteprotocol.config.php: |-
+      <?php
+      $CONFIG = array (
+        'overwriteprotocol' => 'https',
+      );
 
 internalDatabase:
   enabled: false
