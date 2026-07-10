@@ -187,7 +187,7 @@ glance:
                   - title: Traefik
                     url: http://192.168.0.250
                     check-url: http://traefik.kube-system:80
-                    icon: mdi:proxy
+                    icon: mdi:shield-lock
 
               - type: hacker-news
                 limit: 10
@@ -199,7 +199,7 @@ glance:
                   - UCR-DXc1voovS8nhAvccRZhg
                   - UCsBjURrPoezykLs9EqgamOA
                 limit: 12
-                style: grid
+                style: grid-cards
 
           - size: small
             widgets:
@@ -252,7 +252,7 @@ glance:
                   {{ range .JSON.Array "items" }}
                     <li>
                       <a class="size-h4 color-highlight" href="{{ .String "html_url" }}" target="_blank" rel="noreferrer">{{ .String "commit.message" }}</a>
-                      <div class="size-h6 color-paragraph">{{ .String "repository.full_name" }}</div>
+                      <div class="size-h6 color-highlight">{{ .String "repository.full_name" }}</div>
                     </li>
                   {{ end }}
                   </ul>
