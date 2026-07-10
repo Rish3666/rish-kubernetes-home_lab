@@ -143,6 +143,8 @@ configMap:
 # Full docs: https://github.com/glanceapp/glance/blob/main/docs/configuration.md
 glance:
   config: |
+    branding:
+      hide-footer: true
     pages:
       - name: Home
         width: wide
