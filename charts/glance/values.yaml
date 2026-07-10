@@ -173,14 +173,21 @@ glance:
                 title: Services
                 sites:
                   - title: Navidrome
-                    url: http://navidrome.navidrome:4533
+                    url: http://192.168.0.250
+                    check-url: http://navidrome.navidrome:4533/app/
                     icon: mdi:music
                   - title: Nextcloud
-                    url: http://nextcloud.nextcloud:8080
+                    url: https://rishlab.tailb96c63.ts.net
+                    check-url: http://nextcloud.nextcloud:8080
                     icon: mdi:cloud
                   - title: Glance
-                    url: http://glance.glance:8080
+                    url: http://glance.lab.local
+                    check-url: http://glance.glance:8080
                     icon: mdi:monitor-dashboard
+                  - title: Traefik
+                    url: http://192.168.0.250
+                    check-url: http://traefik.kube-system:80
+                    icon: mdi:proxy
 
               - type: hacker-news
                 limit: 10
@@ -192,7 +199,7 @@ glance:
                   - UCR-DXc1voovS8nhAvccRZhg
                   - UCsBjURrPoezykLs9EqgamOA
                 limit: 12
-                collapse-after-rows: 2
+                style: grid
 
           - size: small
             widgets:
@@ -215,20 +222,38 @@ glance:
                     title: Ahmad Shadeed
 
               - type: custom-api
-                title: Recent Commits
-                url: https://api.github.com/users/Rish3666/events?per_page=5
+                title: GitHub Profile
+                url: https://api.github.com/users/Rish3666
                 cache: 5m
                 template: |
+                  <div class="list list-gap-10">
+                    <div class="flex gap-10 items-center">
+                      <img class="circle" src="{{ .JSON.String "avatar_url" }}&s=64" width="48" height="48" alt="" loading="lazy">
+                      <div>
+                        <div class="size-h4 color-highlight">{{ .JSON.String "name" }}</div>
+                        <div class="size-h6 color-paragraph">{{ .JSON.String "bio" }}</div>
+                      </div>
+                    </div>
+                    <div class="flex gap-10">
+                      <span class="chip">{{ .JSON.Float "public_repos" }} repos</span>
+                      <span class="chip">{{ .JSON.Float "followers" }} followers</span>
+                      <span class="chip">{{ .JSON.Float "following" }} following</span>
+                    </div>
+                  </div>
+
+              - type: custom-api
+                title: Recent Commits
+                url: https://api.github.com/search/commits?q=author:Rish3666&sort=author-date&per_page=5
+                cache: 5m
+                headers:
+                  Accept: application/vnd.github.cloak-preview
+                template: |
                   <ul class="list list-gap-10 collapsible-container" data-collapse-after="5">
-                  {{ range .JSON.Array "" }}
-                    {{ if eq .String "type" "PushEvent" }}
-                      {{ range .JSON.Array "payload.commits" }}
-                        <li>
-                          <a class="size-h4 color-highlight" href="https://github.com/{{ $.JSON.String "repo.name" }}/commit/{{ .String "sha" }}" target="_blank" rel="noreferrer">{{ .String "message" }}</a>
-                          <div class="size-h6 color-paragraph">{{ $.JSON.String "repo.name" }}</div>
-                        </li>
-                      {{ end }}
-                    {{ end }}
+                  {{ range .JSON.Array "items" }}
+                    <li>
+                      <a class="size-h4 color-highlight" href="{{ .String "html_url" }}" target="_blank" rel="noreferrer">{{ .String "commit.message" }}</a>
+                      <div class="size-h6 color-paragraph">{{ .String "repository.full_name" }}</div>
+                    </li>
                   {{ end }}
                   </ul>
 
