@@ -200,23 +200,34 @@ glance:
 
           - size: small
             widgets:
-              - type: calendar
-                first-day-of-week: monday
+              - type: html
+                content: |
+                  <h3 class="size-h3 color-highlight margin-bottom-10">Todo</h3>
+                  <ul class="list list-gap-5">
+                    <li><input type="checkbox"> Fix Nextcloud HTTP redirect</li>
+                    <li><input type="checkbox"> Set up backup schedule</li>
+                    <li><input type="checkbox"> Add more services to Glance</li>
+                  </ul>
 
-              - type: rss
-                limit: 10
-                collapse-after: 3
-                cache: 12h
-                feeds:
-                  - url: https://selfh.st/rss/
-                    title: selfh.st
-                    limit: 4
-                  - url: https://ciechanow.ski/atom.xml
-                  - url: https://www.joshwcomeau.com/rss.xml
-                    title: Josh Comeau
-                  - url: https://samwho.dev/rss.xml
-                  - url: https://ishadeed.com/feed.xml
-                    title: Ahmad Shadeed
+              - type: custom-api
+                title: K8s Pods
+                url: https://kubernetes.default.svc/api/v1/pods
+                cache: 1m
+                allow-insecure: true
+                headers:
+                  Authorization: Bearer ${readFileFromEnv:TOKEN_PATH}
+                template: |
+                  <ul class="list list-gap-10 collapsible-container" data-collapse-after="8">
+                  {{ range .JSON.Array "items" }}
+                    <li class="flex gap-10 items-center">
+                      <span class="chip {{ if eq .String "status.phase" "Running" }}color-positive{{ else }}color-negative{{ end }}">{{ .String "status.phase" }}</span>
+                      <div class="grow min-width-0">
+                        <div class="size-h6 text-truncate">{{ .String "metadata.name" }}</div>
+                        <div class="size-h7 color-paragraph">{{ .String "metadata.namespace" }}</div>
+                      </div>
+                    </li>
+                  {{ end }}
+                  </ul>
 
               - type: custom-api
                 title: GitHub Profile
