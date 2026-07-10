@@ -173,7 +173,7 @@ glance:
                 title: Services
                 sites:
                   - title: Navidrome
-                    url: http://192.168.0.250
+                    url: http://navidrome.lab.local
                     check-url: http://navidrome.navidrome:4533/app/
                     icon: mdi:music
                   - title: Nextcloud
