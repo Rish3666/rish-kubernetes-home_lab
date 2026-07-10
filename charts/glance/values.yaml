@@ -224,7 +224,7 @@ glance:
                     {{ if eq .String "type" "PushEvent" }}
                       {{ range .JSON.Array "payload.commits" }}
                         <li>
-                          <a class="size-h4 color-highlight" href="https://github.com/{{ $.JSON.String "repo.name" }}/commit/{{ .String "sha" }}" target="_blank" rel="noreferrer">{{ .String "message" | trunc 60 }}</a>
+                          <a class="size-h4 color-highlight" href="https://github.com/{{ $.JSON.String "repo.name" }}/commit/{{ .String "sha" }}" target="_blank" rel="noreferrer">{{ .String "message" }}</a>
                           <div class="size-h6 color-paragraph">{{ $.JSON.String "repo.name" }}</div>
                         </li>
                       {{ end }}
