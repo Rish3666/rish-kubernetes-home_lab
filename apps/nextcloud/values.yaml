@@ -9,6 +9,8 @@ nextcloud:
     limits:
       cpu: 1000m
       memory: 1Gi
+  trusted_domains:
+    - rishlab.tailb96c63.ts.net:8443
   configs:
     ratelimit.config.php: |-
       <?php
@@ -48,6 +50,9 @@ ingress:
     traefik.ingress.kubernetes.io/router.entrypoints: web
   hosts:
     - host: rishlab.tailb96c63.ts.net
+      paths:
+        - /
+    - host: nextcloud.lab.local
       paths:
         - /
   tls: []
