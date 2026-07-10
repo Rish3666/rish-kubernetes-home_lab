@@ -173,22 +173,18 @@ glance:
                 title: Services
                 sites:
                   - title: Navidrome
-                    url: http://navidrome.lab.local
+                    url: https://rishlab.tailb96c63.ts.net:4533
                     check-url: http://navidrome.navidrome:4533/app/
                     icon: mdi:music
                   - title: Nextcloud
-                    url: https://rishlab.tailb96c63.ts.net
+                    url: https://rishlab.tailb96c63.ts.net:8443
                     check-url: http://nextcloud.nextcloud:8080
                     alt-status-codes: [400]
                     icon: mdi:cloud
                   - title: Glance
-                    url: http://glance.lab.local
+                    url: https://rishlab.tailb96c63.ts.net
                     check-url: http://glance.glance:8080
                     icon: mdi:monitor-dashboard
-                  - title: Traefik
-                    url: http://192.168.0.250
-                    check-url: http://traefik.kube-system:80
-                    icon: mdi:shield-lock
 
               - type: hacker-news
                 limit: 10
