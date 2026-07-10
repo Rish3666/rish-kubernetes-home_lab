@@ -182,7 +182,7 @@ glance:
                     alt-status-codes: [400]
                     icon: mdi:cloud
                   - title: Glance
-                    url: https://rishlab.tailb96c63.ts.net
+                    url: https://rishlab.tailb96c63.ts.net:4443
                     check-url: http://glance.glance:8080
                     icon: mdi:monitor-dashboard
 
