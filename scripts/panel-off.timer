@@ -1,0 +1,10 @@
+[Unit]
+Description=Power off display 30s after boot
+After=multi-user.target
+
+[Timer]
+OnBootSec=30
+Persistent=true
+
+[Install]
+WantedBy=multi-user.target
