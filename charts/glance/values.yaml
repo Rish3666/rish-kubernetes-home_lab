@@ -92,7 +92,7 @@ service:
 #   controller to use (especially in K3s where Traefik is the default).
 ingress:
   # Set to true when you're ready to expose Glance externally.
-  enabled: false
+  enabled: true
   # Traefik is the default ingress controller in K3s. The className tells
   # the ingress controller to pick up this Ingress. In K3s, "traefik" is
   # the name of the default IngressClass.
@@ -148,6 +148,7 @@ glance:
     pages:
       - name: Home
         width: wide
+        hide-desktop-navigation: true
         columns:
           - size: full
             widgets:
@@ -202,15 +203,6 @@ glance:
 
           - size: small
             widgets:
-              - type: html
-                source: |
-                  <h3 class="size-h3 color-highlight margin-bottom-10">Todo</h3>
-                  <ul class="list list-gap-5">
-                    <li><input type="checkbox"> Fix Nextcloud HTTP redirect</li>
-                    <li><input type="checkbox"> Set up backup schedule</li>
-                    <li><input type="checkbox"> Add more services to Glance</li>
-                  </ul>
-
               - type: custom-api
                 title: GitHub Profile
                 url: https://api.github.com/users/Rish3666
