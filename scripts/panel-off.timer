@@ -3,7 +3,7 @@ Description=Power off display 30s after boot
 After=multi-user.target
 
 [Timer]
-OnBootSec=30
+OnBootSec=60
 Persistent=true
 
 [Install]
