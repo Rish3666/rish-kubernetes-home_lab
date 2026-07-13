@@ -23,7 +23,106 @@ export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
 ---
 
-## Repository Layout
+## Hardware
+
+This homelab runs on a repurposed **HP All-in-One 22-c0xx** desktop. Below are the full specs and rationale for using repurposed hardware.
+
+| Component | Detail |
+|-----------|--------|
+| **Model** | HP All-in-One 22-c0xx (103C_53311M HP OPP) |
+| **Chassis** | All-in-One (integrated 21.5" 1920x1080 display) |
+| **CPU** | Intel Pentium Silver J5005 (Gemini Lake) — 4 cores, 4 threads, 1.5 GHz base / 2.8 GHz burst, 4 MB L2 cache, 6W TDP |
+| **GPU** | Intel UHD Graphics 605 (Gemini Lake, i915 driver) |
+| **RAM** | 8 GB DDR4-2666 (single SODIMM in DIMM1, DIMM0 empty) — upgradable to 32 GB max |
+| **OS Drive** | 120 GB Secureye SATA SSD (OS + K3s + container images) |
+| **Storage** | 1 TB Toshiba DT01ACA100 7200 RPM SATA HDD (music, nextcloud data, app data) |
+| **External** | 1 TB WD Blue WD10JPVX 5400 RPM USB 3.0 HDD (backup / spare) |
+| **NIC** | Realtek RTL8111/8168 Gigabit Ethernet |
+| **WiFi** | Realtek RTL8821CE 802.11ac (disabled — not used) |
+| **Bluetooth** | Realtek Bluetooth 4.2 (included with WiFi card) |
+| **Optical** | DVDRW GUD1N SATA (unused) |
+| **Idle Power** | ~15–18 W at the wall (measured with a Kill-A-Watt) |
+| **Under Load** | ~25–30 W (K3s + all apps running) |
+| **Annual Cost** | ~$20–30/year at typical US electricity rates (headless, 24/7) |
+| **OS** | Debian 13 (Trixie) — no GUI, boots to multi-user.target |
+| **Kernel** | 6.12.x |
+
+### Why an All-in-One?
+
+| Factor | Note |
+|--------|------|
+| **Cost** | This machine was free (e-waste). Repurposing beats buying a Raspberry Pi or NUC. |
+| **Built-in UPS** | The integrated LCD draws ~5 W at idle, but also includes a capable 65 W PSU with enough headroom for 2× 3.5" HDDs. A separate UPS is optional. |
+| **Display** | The 21.5" panel is power-gated via DRM DPMS at boot (see `scripts/panel-off.service`). After blanking, the system draws the same power as a headless mini PC. |
+| **PCIe** | One empty M.2 key-E slot (used by WiFi), no expandability beyond USB/SATA. Not a concern for a single-node cluster. |
+| **Fan Noise** | Single 92 mm chassis fan + PSU fan. Barely audible at idle. HDD spin-up is the loudest event. |
+
+### Resource Headroom
+
+With K3s + Navidrome + Nextcloud + MariaDB + Redis + Glance + Flannel:
+
+```
+Memory:  2.6 GiB used / 7.5 GiB total  →  ~35% used,  ~65% free
+CPU:    ~5–15% idle  →  J5005 spends most of its time asleep
+Disk:    30 GiB used / 113 GiB root    →  plenty for container images
+Storage: 150 GiB used / 931 GiB HDD    →  room to grow
+```
+
+The J5005 is a 6W TDP SoC — it's *slow* (Passmark ~2200), but for file serving, music streaming, and light Kubernetes it's more than adequate.
+
+---
+
+## Hardware Suggestions
+
+If you don't have an old All-in-One lying around, here are alternatives that would run this same setup equally well or better.
+
+### Minimal / Low Power (< 15 W)
+
+| Device | CPU | RAM | Storage | Pros | Cons |
+|--------|-----|-----|---------|------|------|
+| **Raspberry Pi 5** | Cortex-A76 4C @ 2.4 GHz | 8 GB | microSD + USB SSD | $80, 5–10 W, huge community | No x86 (ARM64 only), 8 GB RAM ceiling, no ECC |
+| **Radxa Rock 5B** | RK3588 (4× A76 + 4× A55) | 16 GB | NVMe + microSD | 16 GB RAM, PCIe NVMe, USB3 | ARM64, less community than RPi |
+| **Used Thin Client** (Dell Wyse 5070, HP t740) | Intel J5005/N5000 | 8–16 GB | M.2 SATA | $50–100, x86, very low power | Limited expansion, single DIMM |
+| **Used NUC** (NUC7/NUC8) | Intel i3/i5 7th–8th gen | 16–32 GB | M.2 NVMe + SATA | $80–150, very capable, 2× SODIMM | No built-in storage, no display (fine for headless) |
+
+### Recommended / Sweet Spot (15–35 W)
+
+| Device | CPU | RAM | Storage | Pros | Cons |
+|--------|-----|-----|---------|------|------|
+| **Used Dell Optiplex Micro** (3040/3050/3060) | Intel i5-6500T / i5-8500T | 16–32 GB | M.2 + 2.5" SATA | $80–120, Tiny form factor, very quiet, USB-C DP Alt, 1× GbE, can add 2.5 GbE via M.2 key-E | Single SODIMM on some models |
+| **Used HP EliteDesk 800 G3/G4 Mini** | Intel i5-6500T / i5-8500T | 16–32 GB | M.2 + 2.5" SATA | $70–110, Very small, 6× USB, DP + VGA, W19 slot | 1× GbE only (add 2.5 GbE via USB) |
+| **Used Lenovo M720q / M920q Tiny** | Intel i5-8500T / i7-8700T | 32 GB | M.2 + 2.5" SATA | $100–150, Can fit a PCIe riser for 2.5 GbE or 4-port NIC, great K3s node | Slightly pricier |
+| **ASUS N100/N150/N300 mini** | Intel N100 (4× Alder Lake-N) | 16–32 GB | M.2 NVMe | $120–150 new, 6W TDP, AV1 decode, DDR5, dual GbE | No ECC, single channel RAM limited to 16 GB / 32 GB depending on model |
+
+### Overkill (but awesome) — Multi-Node Cluster
+
+| Device | Role | Why |
+|--------|------|-----|
+| **3× HP EliteDesk 800 G4 Mini** | 3-node K3s cluster | $300–400 total. Run control-plane on all 3, HA with embedded etcd. 10× the headroom for < 60 W total. |
+| **1× ODROID-H4+** | Single-node cluster | N305 (8× Alder Lake-N), 32 GB DDR5, 2× 2.5 GbE, M.2 NVMe + SATA. $200. Best low-power x86 SBC. |
+
+### Niche / Unusual Setups
+
+| Setup | Description |
+|-------|-------------|
+| **Laptop with a cracked screen** | The most common e-waste. Lid closed, DPMS Off on the internal panel. Same panel-off.service works. Even better: laptop has a built-in battery-UPS and WiFi. Downside: fan noise under load, hinge wear. |
+| **Old Chromebook** (x86 model) | Flash Coreboot/SeaBIOS, install Debian. The USB-C charger doubles as the PSU. Very power-efficient (5–10 W). Limited to 4–8 GB RAM (soldered). |
+| **Thin Client + USB HDD** | HP t740, Dell Wyse 5070, Fujitsu Futro S920. $30–60 on eBay. J5000/J5005 based, desktop idle power ~6 W. Add a USB 3.0 enclosure for bulk storage. Perfect for Navidrome. |
+| **Repurposed Cable Box / DVR** | Older TiVo, Sky box, or cable DVR with a SATA port and a Linux-capable SoC. Flashing custom firmware turns them into low-power Linux boxes. The eMMC is tiny, so you'll boot from USB. Niche, but cheap. |
+| **VM / LXC on your main PC** | Run the whole stack as VMs or LXC containers on your daily driver. No extra hardware, no power cost. Great for testing, but not 24/7 if your main PC goes to sleep. |
+| **Hetzner CX22 / CX32 Cloud VM** | 2 vCPU + 4 GB RAM, €3.79/mo. Full K3s, public IP, no power/noise. $45/year beats buying hardware if you don't need local storage. Add a Volume (€0.05/GB/mo) for music/nextcloud. |
+| **Router-as-a-Server** | If you run OPNsense/pfSense/OpenWrt on x86 hardware, you already have a 24/7 Linux box. Spin up a K3s node next to your firewall. Only do this if you have ample RAM and storage on the router. |
+
+### Key Considerations for Any Hardware
+
+| Factor | Advice |
+|--------|--------|
+| **RAM** | 8 GB minimum. 16 GB recommended for Nextcloud + Navidrome + Redis + monitoring. K3s itself uses ~1 GB. |
+| **Storage** | Separate OS disk (SSD) from data disk (HDD or large SSD). K3s container images fill up small SSDs fast. Use `hostPath` PVs for music/nextcloud data on the big HDD. |
+| **Networking** | 1 GbE is fine for music streaming + file sync. If you run Jellyfin with transcoding or large Nextcloud syncs, consider 2.5 GbE via USB adapter or M.2 key-E NIC. |
+| **Power** | For a 24/7 server, every watt matters: 10 W × 8760 h = 87.6 kWh/year ≈ $13/year. A NUC at 20 W costs ~$26/year. Factor this into your hardware budget. |
+| **ECC RAM** | Not needed for a homelab. Bit flips happen, but ZFS on the data HDD protects against silent corruption. For the OS SSD, daily restic or borg backups cover you. |
+| **Silence** | If the machine lives in your bedroom/living room, prioritize passive-cooled or large-slow-fan designs. Thin clients and NUCs are nearly silent. Old HDDs are the loudest component. |
 
 ```
 ~/rishlab/
