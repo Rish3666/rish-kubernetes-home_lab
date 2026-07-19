@@ -6,8 +6,14 @@ image:
   pullPolicy: IfNotPresent
 
 service:
-  type: ClusterIP
+  # ClusterIP   → Access via Tailscale Serve (tunnel, double encryption, slower for large uploads)
+  #              URL: http://<tailscale-hostname>:4533
+  # NodePort    → Direct LAN access (no tunnel, faster for large uploads)
+  #              URL: http://<lan-ip>:31433
+  #              ⚠ Switch back to ClusterIP if you don't need direct LAN access
+  type: NodePort
   port: 4533
+  nodePort: 31433
 
 storage:
   music:

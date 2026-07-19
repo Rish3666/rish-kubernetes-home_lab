@@ -13,5 +13,8 @@ spec:
 
   - port: {{ .Values.service.port }}
     targetPort: 4533
+    {{- if .Values.service.nodePort }}
+    nodePort: {{ .Values.service.nodePort }}
+    {{- end }}
 
   type: {{ .Values.service.type }}
