@@ -1,0 +1,38 @@
+services:
+  minecraft:
+    image: itzg/minecraft-server:java21
+    container_name: minecraft
+    restart: "no"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    ports:
+      - "25565:25565"
+      - "30065:25565"
+    environment:
+      EULA: "TRUE"
+      TYPE: FORGE
+      VERSION: "1.20.1"
+      FORGE_VERSION: "47.4.20"
+      MEMORY: "6G"
+      MODE: survival
+      DIFFICULTY: easy
+      MAX_PLAYERS: "10"
+      VIEW_DISTANCE: "25"
+      SIMULATION_DISTANCE: "12"
+      MOTD: "CraftZ - Zombie Survival (Forge 1.20.1)"
+      SPAWN_PROTECTION: "16"
+      ONLINE_MODE: "FALSE"
+      OVERRIDE_SERVER_PROPERTIES: "TRUE"
+      REMOVE_OLD_MODS: "FALSE"
+      TZ: Asia/Kolkata
+      JVM_OPTS: >-
+        -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200
+        -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch
+        -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1HeapRegionSize=8M
+        -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4
+        -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90
+        -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32
+        -Dusing.aikars.flags=https://mcflags.emc.gs -Daikars.new.flags=true
+    volumes:
+      - /mnt/storage/minecraft:/data

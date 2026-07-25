@@ -188,6 +188,10 @@ glance:
                     url: https://rishlab.tailb96c63.ts.net:4443
                     check-url: http://glance.glance:8080
                     icon: mdi:monitor-dashboard
+                  - title: Minecraft (CraftZ)
+                    url: https://rishlab.tailb96c63.ts.net
+                    check-url: tcp://100.73.192.123:25565
+                    icon: mdi:minecraft
 
               - type: hacker-news
                 limit: 10
@@ -203,6 +207,38 @@ glance:
 
           - size: small
             widgets:
+              - type: custom-api
+                title: Minecraft — CraftZ
+                url: https://api.mcsrvstat.us/3/100.73.192.123:25565
+                cache: 1m
+                template: |
+                  {{ if .JSON.Bool "online" }}
+                  <div class="list list-gap-10">
+                    <div class="flex gap-10 items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="currentColor" class="color-highlight"><path d="M4 2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m8 2.5c-3.58 0-6.5 2.92-6.5 6.5s2.92 6.5 6.5 6.5 6.5-2.92 6.5-6.5-2.92-6.5-6.5-6.5m0 1c.83 0 1.5.67 1.5 1.5S12.83 9 12 9s-1.5-.67-1.5-1.5S11.17 5.5 12 5.5m-4 5c.83 0 1.5.67 1.5 1.5S8.83 13.5 8 13.5 6.5 12.83 6.5 12 7.17 10.5 8 10.5m8 0c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5m-4 3c.83 0 1.5.67 1.5 1.5S12.83 16.5 12 16.5s-1.5-.67-1.5-1.5.67-1.5 1.5-1.5z"/></svg>
+                      <div>
+                        <div class="size-h4 color-highlight">🟢 Online</div>
+                        <div class="size-h6 color-paragraph">{{ .JSON.String "motd.clean.0" }}</div>
+                      </div>
+                    </div>
+                    <div class="flex gap-10">
+                      <span class="chip">👥 {{ .JSON.Int "players.online" }} / {{ .JSON.Int "players.max" }}</span>
+                      <span class="chip">🗡 {{ .JSON.String "version" }}</span>
+                    </div>
+                    {{ if .JSON.Array "players.list" }}
+                    <ul class="list list-gap-4">
+                      {{ range .JSON.Array "players.list" }}
+                      <li class="size-h5">{{ .String "name" }}</li>
+                      {{ end }}
+                    </ul>
+                    {{ end }}
+                  </div>
+                  {{ else }}
+                  <div class="flex gap-10 items-center">
+                    <div class="size-h4 color-negative">🔴 Offline</div>
+                  </div>
+                  {{ end }}
+
               - type: custom-api
                 title: GitHub Profile
                 url: https://api.github.com/users/Rish3666

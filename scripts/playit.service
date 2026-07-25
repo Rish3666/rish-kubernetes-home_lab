@@ -1,0 +1,17 @@
+[Unit]
+Description=Playit Agent
+Documentation=https://playit.gg
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=rishlab
+Group=rishlab
+WorkingDirectory=/home/rishlab/rishlab/apps/minecraft-docker
+ExecStart=/home/rishlab/rishlab/apps/minecraft-docker/playit-start.sh
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target
