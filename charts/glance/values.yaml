@@ -190,7 +190,7 @@ glance:
                     icon: mdi:monitor-dashboard
                   - title: Minecraft
                     url: https://rishlab.tailb96c63.ts.net
-                    check-url: tcp://100.73.192.123:25565
+                    check-url: http://172.17.0.1:8082
                     icon: mdi:minecraft
 
               - type: hacker-news
