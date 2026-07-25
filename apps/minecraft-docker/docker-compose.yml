@@ -11,18 +11,20 @@ services:
       - "30065:25565"
     environment:
       EULA: "TRUE"
-      TYPE: FORGE
-      VERSION: "1.20.1"
-      FORGE_VERSION: "47.4.20"
-      MEMORY: "6G"
+      TYPE: FABRIC
+      VERSION: "1.21.11"
+      FABRIC_LOADER_VERSION: "0.18.4"
+      MEMORY: "4G"
       MODE: survival
-      DIFFICULTY: easy
+      DIFFICULTY: normal
       MAX_PLAYERS: "10"
-      VIEW_DISTANCE: "25"
-      SIMULATION_DISTANCE: "12"
-      MOTD: "CraftZ - Zombie Survival (Forge 1.20.1)"
-      SPAWN_PROTECTION: "16"
+      VIEW_DISTANCE: "10"
+      SIMULATION_DISTANCE: "8"
+      MOTD: "rishlab - Fabric 1.21.11"
+      SPAWN_PROTECTION: "0"
       ONLINE_MODE: "FALSE"
+      ENABLE_AUTOPAUSE: "FALSE"
+      AUTOPAUSE_TIMEOUT_EST.0: "0"
       OVERRIDE_SERVER_PROPERTIES: "TRUE"
       REMOVE_OLD_MODS: "FALSE"
       TZ: Asia/Kolkata
