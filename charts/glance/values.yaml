@@ -209,7 +209,7 @@ glance:
             widgets:
               - type: custom-api
                 title: Minecraft
-                url: https://api.mcsrvstat.us/3/100.73.192.123:25565
+                url: http://172.17.0.1:8082
                 cache: 1m
                 template: |
                   {{ if .JSON.Bool "online" }}

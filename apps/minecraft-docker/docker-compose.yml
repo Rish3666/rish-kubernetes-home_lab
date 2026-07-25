@@ -18,8 +18,8 @@ services:
       MODE: survival
       DIFFICULTY: normal
       MAX_PLAYERS: "10"
-      VIEW_DISTANCE: "10"
-      SIMULATION_DISTANCE: "8"
+      VIEW_DISTANCE: "20"
+      SIMULATION_DISTANCE: "16"
       MOTD: "rishlab - Fabric 1.21.11"
       SPAWN_PROTECTION: "0"
       ONLINE_MODE: "FALSE"
@@ -38,3 +38,13 @@ services:
         -Dusing.aikars.flags=https://mcflags.emc.gs -Daikars.new.flags=true
     volumes:
       - /mnt/storage/minecraft:/data
+
+  mc-status:
+    image: python:3-alpine
+    container_name: mc-status
+    restart: always
+    ports:
+      - "8082:8082"
+    volumes:
+      - /mnt/storage/mc_status_server.py:/app/server.py
+    command: python3 /app/server.py
