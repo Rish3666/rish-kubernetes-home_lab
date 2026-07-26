@@ -11,5 +11,8 @@ if is_running; then
   docker stop --time 30 "$CONTAINER"
 fi
 
+log "Restarting playit tunnel..."
+sudo systemctl restart playit 2>/dev/null && ok "Playit restarted." || warn "Could not restart playit."
+
 docker start "$CONTAINER" 2>/dev/null || compose up -d "$SERVICE"
 ok "Server restarted.  Follow logs: ./logs.sh"
