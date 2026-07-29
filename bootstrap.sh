@@ -231,17 +231,17 @@ setup_apps() {
   log "Step 7/11: Deploying applications..."
 
   # Navidrome
-  if [[ -d "$REPO_DIR/charts/navidrome" ]]; then
+  if [[ -d "$REPO_DIR/apps/navidrome" ]]; then
     if kubectl get deployment -n navidrome navidrome 2>/dev/null | grep -q navidrome; then
       ok "Navidrome already deployed."
     else
       log "Deploying Navidrome..."
       kubectl create namespace navidrome 2>/dev/null || true
-      helm upgrade --install navidrome "$REPO_DIR/charts/navidrome" -n navidrome --wait --timeout 3m
+      helm upgrade --install navidrome "$REPO_DIR/apps/navidrome" -n navidrome --wait --timeout 3m
       ok "Navidrome deployed."
     fi
   else
-    warn "Navidrome chart not found at charts/navidrome. Skipping."
+    warn "Navidrome chart not found at apps/navidrome. Skipping."
   fi
 
   # Nextcloud
@@ -251,11 +251,55 @@ setup_apps() {
     log "Deploying Nextcloud..."
     kubectl create namespace nextcloud 2>/dev/null || true
 
+    # Create PV and PVC for Nextcloud data
+    cat << 'EOF' | kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nextcloud-data-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 256Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /mnt/storage/nextcloud
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nextcloud-data
+  namespace: nextcloud
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 256Gi
+EOF
+
     cat > /tmp/nextcloud-values.yaml << 'VALUES'
 nextcloud:
   host: rishlab.tailb96c63.ts.net
   adminUser: admin
   adminPassword: Rish@363636
+  configs:
+    ratelimit.config.php: |-
+      <?php
+      $CONFIG = [
+        'ratelimit.enabled' => 'false',
+        'auth.bruteforce.protection.enabled' => 'false',
+      ];
+    overwriteprotocol.config.php: |-
+      <?php
+      $CONFIG = [
+        'overwriteprotocol' => 'https',
+      ];
 internalDatabase:
   enabled: false
 externalDatabase:
@@ -281,19 +325,6 @@ ingress:
 persistence:
   enabled: true
   existingClaim: nextcloud-data
-nextcloud:
-  configs:
-    ratelimit.config.php: |-
-      <?php
-      $CONFIG = [
-        'ratelimit.enabled' => 'false',
-        'auth.bruteforce.protection.enabled' => 'false',
-      ];
-    overwriteprotocol.config.php: |-
-      <?php
-      $CONFIG = [
-        'overwriteprotocol' => 'https',
-      ];
 resources:
   requests:
     cpu: 100m
@@ -390,9 +421,51 @@ services:
       TZ: Asia/Kolkata
     volumes:
       - /mnt/storage/minecraft:/data
+
+  mc-status:
+    image: python:3-alpine
+    container_name: mc-status
+    restart: always
+    ports:
+      - "8082:8082"
+    volumes:
+      - /mnt/storage/mc_status_server.py:/app/server.py
+    command: python3 /app/server.py
 YML
 
-  ok "Minecraft docker-compose.yml created at $mc_dir"
+  # mc-status server script
+  cat > /mnt/storage/mc_status_server.py << 'PY'
+import socket, json, struct
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        online = False
+        data = {"online": False, "version": "", "players": 0, "max_players": 0}
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(3)
+            s.connect(("minecraft", 25565))
+            s.send(b"\xfe\x01")
+            raw = s.recv(4096)
+            if raw and raw[0] == 0xff:
+                raw = raw[3:].decode("utf-16be", errors="ignore")
+                parts = raw.split("\x00")
+                data = {"online": True, "version": parts[2] if len(parts) > 2 else "",
+                        "players": int(parts[4]) if len(parts) > 4 else 0,
+                        "max_players": int(parts[5]) if len(parts) > 5 else 0}
+            s.close()
+        except: pass
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode())
+
+HTTPServer(("0.0.0.0", 8082), Handler).serve_forever()
+PY
+
+  ok "Minecraft docker-compose.yml and mc-status script created."
 }
 
 # ── Step 10: Playit ──────────────────────────────────────────────────────────
