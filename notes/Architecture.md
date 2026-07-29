@@ -1,5 +1,9 @@
 # Architecture
 
+> See also: [[Kubernetes]], [[Networking]], [[Storage]]
+
+---
+
 ## High-Level Layout
 
 ```
@@ -26,8 +30,8 @@
 │  └─────────────────────────────────────────────┘     │
 │                                                       │
 │  ┌─────────────────────────────────────────────┐     │
-│  │     Minecraft (Docker Compose, not K3s)       │     │
-│  │     Port 25565 + Playit tunnel                │     │
+│  │     Minecraft (Docker Compose, not K3s)      │     │
+│  │     Port 25565 + Playit tunnel               │     │
 │  └─────────────────────────────────────────────┘     │
 │                                                       │
 │  ┌─────────────────────────────────────────────┐     │
@@ -50,9 +54,9 @@
 
 | Method | Services |
 |--------|----------|
-| **K3s + Helm** | Nextcloud, Navidrome, Glance, MariaDB, Redis |
-| **Docker Compose** | Minecraft server |
-| **Systemd** | Playit tunnel, panel-off (display) |
+| **K3s + Helm** | [[Nextcloud]], [[Navidrome]], [[Glance]], [[Databases]] |
+| **Docker Compose** | [[Minecraft]] |
+| **Systemd** | [[Scripts#Playit]], [[Scripts#Display Services]] |
 
 ## Service Dependencies
 
@@ -74,5 +78,7 @@ Minecraft ──→ Playit.gg tunnel for external access
 | Nextcloud | `rishlab.tailb96c63.ts.net:8443` | — |
 | Navidrome | `rishlab.tailb96c63.ts.net:4533` | — |
 | Glance | `rishlab.tailb96c63.ts.net:4443` | — |
-| Minecraft | `192.168.0.250:25565/30065` | `sales-arguments.gl.joinmc.link` |
+| Minecraft | `192.168.0.250:25565` | `sales-arguments.gl.joinmc.link` |
 | SSH | `192.168.0.250:22` | Tailscale SSH |
+
+Details: [[Networking]]

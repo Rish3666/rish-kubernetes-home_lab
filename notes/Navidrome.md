@@ -1,10 +1,12 @@
 # Navidrome
 
-**Deployment:** Local Helm chart (`charts/navidrome`)  
+**Chart:** Local Helm chart (`charts/navidrome`)  
 **Namespace:** `navidrome`  
 **Image:** `deluan/navidrome:latest`  
 **Version:** 0.61.1  
 **Status:** Running
+
+> See also: [[Architecture]], [[Storage]], [[Kubernetes]], [[Bootstrap#Navidrome]]
 
 ---
 
@@ -17,15 +19,6 @@
 | Data folder | `/data` |
 | Image cache size | 500MB |
 | Download rate limit | 0 (unlimited) |
-
-### Environment Variables
-```yaml
-TZ: Asia/Kolkata
-ND_MUSICFOLDER: /music
-ND_DATAFOLDER: /data
-ND_IMAGECACHESIZE: 500MB
-ND_DOWNLOADRATELIMIT: 0
-```
 
 ---
 
@@ -55,3 +48,5 @@ ND_DOWNLOADRATELIMIT: 0
 | Internal (Tailscale) | `https://rishlab.tailb96c63.ts.net:4533` |
 | Internal (lab.local) | `https://navidrome.lab.local` |
 | Direct | `192.168.0.250:31433` |
+
+Details: [[Networking]]

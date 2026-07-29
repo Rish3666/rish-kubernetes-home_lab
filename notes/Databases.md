@@ -2,57 +2,42 @@
 
 Both databases live in the `databases` namespace and are shared by all services.
 
+> See also: [[Kubernetes]], [[Nextcloud]], [[Architecture]]
+
 ---
 
 ## MariaDB
 
-**Chart:** Bitnami MariaDB (`oci://registry-1.docker.io/bitnamicharts/mariadb`)  
-**Architecture:** Standalone (single instance)
+**Chart:** Bitnami MariaDB  
+**Architecture:** Standalone
 
-### Configuration
 | Setting | Value |
 |---------|-------|
-| Root password | `ChangeRootPassword123!` |
 | Database | `nextcloud` |
 | User | `nextcloud` |
-| User password | `ChangeNextcloudPassword123!` |
-| Storage | 20Gi (`local-path` storage class) |
-| Resources | requests: 100m CPU / 256Mi RAM, limits: 1000m CPU / 1Gi RAM |
-
-### Service
-- **Name:** `mariadb.databases.svc.cluster.local`
-- **Port:** 3306
-
-### Restarts
-~88 restarts (27 days) — related to node reboots during development.
+| Password | `ChangeNextcloudPassword123!` |
+| Storage | 20Gi |
+| Service | `mariadb.databases.svc.cluster.local:3306` |
 
 ---
 
 ## Redis
 
-**Chart:** Bitnami Redis (`oci://registry-1.docker.io/bitnamicharts/redis`)  
-**Architecture:** Standalone (replicas: 0)
+**Chart:** Bitnami Redis  
+**Architecture:** Standalone
 
-### Configuration
 | Setting | Value |
 |---------|-------|
 | Auth enabled | Yes |
 | Password | `YourStrongRedisPassword123!` |
-| Storage | 5Gi (`local-path` storage class) |
-| Resources | requests: 50m CPU / 128Mi RAM, limits: 500m CPU / 512Mi RAM |
-
-### Service
-- **Name:** `redis-master.databases.svc.cluster.local`
-- **Port:** 6379
-
-### Restarts
-~88 restarts (27 days) — same as MariaDB.
+| Storage | 5Gi |
+| Service | `redis-master.databases.svc.cluster.local:6379` |
 
 ---
 
 ## Usage
 
-Nextcloud connects to both:
+[[Nextcloud]] connects to both:
 - MariaDB for relational data (files, users, calendar, contacts)
 - Redis for caching, lock management, and transactional file handling
 
@@ -64,9 +49,14 @@ db:
   user: nextcloud
   password: ChangeNextcloudPassword123!
 
-# Nextcloud Redis config
 redis:
   host: redis-master.databases.svc.cluster.local
   port: 6379
   password: YourStrongRedisPassword123!
 ```
+
+---
+
+## Deployment
+
+These are deployed via [[Bootstrap#Databases]] — the bootstrap script handles it automatically.

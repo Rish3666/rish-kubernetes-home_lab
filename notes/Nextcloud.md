@@ -1,8 +1,10 @@
 # Nextcloud
 
-**Deployment:** Official Nextcloud Helm chart (`oci://registry-1.docker.io/nextcloud/nextcloud`)  
+**Chart:** Official Nextcloud Helm chart  
 **Namespace:** `nextcloud`  
-**Status:** Running (2/2 containers — app + cron)
+**Status:** Running (2/2 containers)
+
+> See also: [[Databases]], [[Architecture]], [[Networking]], [[Bootstrap#Nextcloud]]
 
 ---
 
@@ -12,7 +14,6 @@
 |---------|-------|
 | Host | `rishlab.tailb96c63.ts.net` |
 | Admin user | `admin` |
-| Admin password | `Rish@363636` |
 | Trusted domains | `rishlab.tailb96c63.ts.net:8443` |
 
 ---
@@ -21,7 +22,7 @@
 
 | Setting | Value |
 |---------|-------|
-| Type | External MariaDB |
+| Type | External [[Databases#MariaDB]] |
 | Host | `mariadb.databases.svc.cluster.local` |
 | Database | `nextcloud` |
 | User | `nextcloud` |
@@ -48,25 +49,21 @@
 | Size | 256Gi |
 | Host path | `/mnt/storage/nextcloud` |
 
+Details: [[Storage]]
+
 ---
 
 ## Custom Configs
 
-### Disable Rate Limiting (`ratelimit.config.php`)
+### Disable Rate Limiting
 ```php
-<?php
-$CONFIG = [
-  'ratelimit.enabled' => 'false',
-  'auth.bruteforce.protection.enabled' => 'false',
-];
+$CONFIG['ratelimit.enabled'] = 'false';
+$CONFIG['auth.bruteforce.protection.enabled'] = 'false';
 ```
 
-### Force HTTPS (`overwriteprotocol.config.php`)
+### Force HTTPS
 ```php
-<?php
-$CONFIG = [
-  'overwriteprotocol' => 'https',
-];
+$CONFIG['overwriteprotocol'] = 'https';
 ```
 
 ---
@@ -77,12 +74,3 @@ $CONFIG = [
 |--------|-----|
 | Internal (Tailscale) | `https://rishlab.tailb96c63.ts.net:8443` |
 | Internal (lab.local) | `https://nextcloud.lab.local` |
-
----
-
-## Resources
-
-| Resource | Request | Limit |
-|----------|---------|-------|
-| CPU | 100m | 1000m |
-| Memory | 512Mi | 1Gi |

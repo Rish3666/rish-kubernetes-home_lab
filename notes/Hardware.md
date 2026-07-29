@@ -3,6 +3,8 @@
 **Model:** HP All-in-One 22-c0xx (103C_53311M HP OPP)
 **Chassis:** 21.5" 1920x1080 display (power-gated at boot via fbdev DPMS)
 
+See: [[Architecture]], [[Storage]], [[Bootstrap#Hardware Prep]]
+
 ---
 
 ## CPU
@@ -29,6 +31,8 @@
 | Slots | 2 (DIMM0 empty, DIMM1 populated) |
 | Max | 32 GB |
 
+**Upgrade planned** — see [[Future-Plans#Other Ideas]]
+
 ---
 
 ## GPU
@@ -44,10 +48,11 @@
 
 | Device | Size | Type | Mount | Purpose |
 |--------|------|------|-------|---------|
-| `/dev/sda` | 120 GB | Secureye SATA SSD | `/` (111G avail) | OS, K3s, container images |
-| `/dev/sdb` | 1 TB | Toshiba DT01ACA100 (7200 RPM) | `/mnt/storage` (916G, 78G used) | App data: music, Nextcloud, Minecraft |
+| `/dev/sda` | 120 GB | Secureye SATA SSD | `/` (111G avail) | OS, [[Kubernetes]], container images |
+| `/dev/sdb` | 1 TB | Toshiba DT01ACA100 (7200 RPM) | `/mnt/storage` | App data: [[Navidrome]], [[Nextcloud]], [[Minecraft]] |
 | `/dev/sdc` | 1 TB | WD Blue WD10JPVX (5400 RPM, USB 3.0) | (unmounted) | Backup / spare |
-| `/dev/sr0` | 1024M | DVDRW GUD1N SATA | (unused) | Optical drive |
+
+Details: [[Storage]]
 
 ---
 
@@ -58,6 +63,8 @@
 | Ethernet | Realtek RTL8111/8168 Gigabit — `192.168.0.250` |
 | WiFi | Realtek RTL8821CE 802.11ac (disabled) |
 | Bluetooth | Realtek Bluetooth 4.2 (disabled) |
+
+Details: [[Networking]]
 
 ---
 
@@ -80,4 +87,6 @@
 | Mode | No GUI, boots to multi-user.target |
 | K3s | v1.36.2+k3s1 |
 | containerd | 2.3.2-k3s2 |
-| Docker | 29.6.1 (via snap)
+| Docker | 29.6.1 (via snap) |
+
+Switching distros? Use [[Bootstrap]] for a fresh start.
