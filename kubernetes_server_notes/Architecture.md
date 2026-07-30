@@ -7,54 +7,56 @@
 ## High-Level Layout
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   HP All-in-One                      │
-│               (Pentium J5005, 8GB)                    │
-│                                                       │
-│  ┌─────────────────────────────────────────────┐     │
-│  │              K3s Cluster                     │     │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  │     │
-│  │  │ Nextcloud│  │ Navidrome│  │  Glance   │  │     │
-│  │  │  (K3s)   │  │  (K3s)   │  │  (K3s)    │  │     │
-│  │  └────┬─────┘  └────┬─────┘  └────┬─────┘  │     │
-│  │       │              │              │        │     │
-│  │  ┌────┴──────────────┴──────────────┴────┐  │     │
-│  │  │       Traefik Ingress Controller       │  │     │
-│  │  └────────────────┬──────────────────────┘  │     │
-│  └───────────────────┼─────────────────────────┘     │
-│                      │                                │
-│  ┌───────────────────┼─────────────────────────┐     │
-│  │          Tailscale VPN (MagicDNS)            │     │
-│  │  glance.lab.local  navidrome.lab.local       │     │
-│  │  rishlab.tailb96c63.ts.net:4443/4533/8443    │     │
-│  └─────────────────────────────────────────────┘     │
-│                                                       │
-│  ┌─────────────────────────────────────────────┐     │
-│  │     Minecraft (Docker Compose, not K3s)      │     │
-│  │     Port 25565 + Playit tunnel               │     │
-│  └─────────────────────────────────────────────┘     │
-│                                                       │
-│  ┌─────────────────────────────────────────────┐     │
-│  │        Databases Namespace                   │     │
-│  │  ┌──────────┐          ┌──────────┐         │     │
-│  │  │  MariaDB │◄────────►│   Redis  │         │     │
-│  │  │  (K3s)   │          │  (K3s)   │         │     │
-│  │  └──────────┘          └──────────┘         │     │
-│  └─────────────────────────────────────────────┘     │
-│                                                       │
-│  Storage: /dev/sdb (1TB HDD) → /mnt/storage          │
-│    ├── music/       (Navidrome)                       │
-│    ├── navidrome/   (Navidrome data)                  │
-│    ├── nextcloud/   (Nextcloud files)                 │
-│    └── minecraft/   (Minecraft world + mods)          │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                   HP All-in-One (deb-rish)                │
+│               (Pentium J5005, 8GB)                        │
+│                                                           │
+│  ┌─────────────────────────────────────────────────┐     │
+│  │              K3s Cluster (v1.36.2)               │     │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │     │
+│  │  │ Nextcloud│  │ Navidrome│  │    Glance     │  │     │
+│  │  │ (Helm)   │  │ (Helm)   │  │ (Local Chart) │  │     │
+│  │  └────┬─────┘  └────┬─────┘  └──────┬───────┘  │     │
+│  │       │              │               │          │     │
+│  │  ┌────┴──────────────┴───────────────┴──────┐  │     │
+│  │  │       Traefik Ingress Controller          │  │     │
+│  │  └────────────────┬─────────────────────────┘  │     │
+│  └───────────────────┼────────────────────────────┘     │
+│                      │                                  │
+│  ┌───────────────────┼─────────────────────────────┐    │
+│  │          Tailscale VPN (MagicDNS)                │    │
+│  │  deb-rish.tailb96c63.ts.net:4443/4533/8443       │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                          │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │     Minecraft (Docker Compose, not K3s)          │    │
+│  │     Port 25565 + Playit tunnel                   │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                          │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │        Databases Namespace (shared)              │    │
+│  │  ┌──────────┐          ┌──────────┐             │    │
+│  │  │  MariaDB │◄────────►│   Redis  │             │    │
+│  │  │ (Bitnami)│          │ (Bitnami)│             │    │
+│  │  └──────────┘          └──────────┘             │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                          │
+│  Storage: /dev/sdb2 (1TB HDD) → /mnt/storage            │
+│    ├── music/       (Navidrome library)                  │
+│    ├── navidrome/   (Navidrome data/cache)               │
+│    ├── nextcloud/   (Nextcloud user files)               │
+│    ├── minecraft/   (Minecraft world + mods)             │
+│    └── k3s/         (K3s data dir)                       │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ## Deployment Methods
 
 | Method | Services |
 |--------|----------|
-| **K3s + Helm** | [[Nextcloud]], [[Navidrome]], [[Glance]], [[Databases]] |
+| **K3s + Helm (Bitnami)** | [[Databases]] (MariaDB, Redis) |
+| **K3s + Helm (Official)** | [[Nextcloud]] |
+| **K3s + Helm (Local Chart)** | [[Navidrome]], [[Glance]] |
 | **Docker Compose** | [[Minecraft]] |
 | **Systemd** | [[Scripts#Playit]], [[Scripts#Display Services]] |
 
@@ -64,21 +66,23 @@
 Nextcloud ──┬── MariaDB (databases namespace)
             └── Redis (databases namespace)
 
-Navidrome ──→ HostPath PV (music files)
+Navidrome ──→ HostPath PV (music files at /mnt/storage/music)
 
-Glance ──→ HTTP checks to all services for monitoring
+Glance ──→ HTTP checks to all services for status monitoring
+         └── /proc + /sys mount for host stats
 
-Minecraft ──→ Playit.gg tunnel for external access
+Minecraft ──→ Playit.gg tunnel (external access via playit.gg)
+            └── mc-status companion container (port 8082)
 ```
 
-## Access Methods
+## Access Flow
 
-| Service | Internal (Tailscale) | External |
-|---------|---------------------|----------|
-| Nextcloud | `rishlab.tailb96c63.ts.net:8443` | — |
-| Navidrome | `rishlab.tailb96c63.ts.net:4533` | — |
-| Glance | `rishlab.tailb96c63.ts.net:4443` | — |
-| Minecraft | `192.168.0.250:25565` | `sales-arguments.gl.joinmc.link` |
-| SSH | `192.168.0.250:22` | Tailscale SSH |
+```
+Internet → Tailscale VPN → deb-rish.tailb96c63.ts.net
+                              │
+                    Tailscale Serve (port 4443, 4533, 8443)
+                              │
+                    Traefik Ingress ←→ Service ←→ Pod ←→ PV
 
-Details: [[Networking]]
+Minecraft (external) → Playit tunnel → 192.168.0.112:25565
+```

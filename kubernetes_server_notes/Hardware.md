@@ -2,8 +2,9 @@
 
 **Model:** HP All-in-One 22-c0xx (103C_53311M HP OPP)
 **Chassis:** 21.5" 1920x1080 display (power-gated at boot via fbdev DPMS)
+**Hostname:** `deb-rish`
 
-See: [[Architecture]], [[Storage]], [[Bootstrap#Hardware Prep]]
+> See also: [[Architecture]], [[Storage]], [[Bootstrap#System Preparation]]
 
 ---
 
@@ -20,8 +21,6 @@ See: [[Architecture]], [[Storage]], [[Bootstrap#Hardware Prep]]
 | TDP | 6W |
 | Passmark | ~2200 |
 
----
-
 ## RAM
 
 | Spec | Value |
@@ -31,9 +30,7 @@ See: [[Architecture]], [[Storage]], [[Bootstrap#Hardware Prep]]
 | Slots | 2 (DIMM0 empty, DIMM1 populated) |
 | Max | 32 GB |
 
-**Upgrade planned** — see [[Future-Plans#Other Ideas]]
-
----
+Upgrade planned — see [[Future-Plans#Hardware Upgrades]]
 
 ## GPU
 
@@ -42,31 +39,27 @@ See: [[Architecture]], [[Storage]], [[Bootstrap#Hardware Prep]]
 | Model | Intel UHD Graphics 605 |
 | Driver | i915 (Gemini Lake) |
 
----
-
 ## Storage
 
 | Device | Size | Type | Mount | Purpose |
 |--------|------|------|-------|---------|
-| `/dev/sda` | 120 GB | Secureye SATA SSD | `/` (111G avail) | OS, [[Kubernetes]], container images |
-| `/dev/sdb` | 1 TB | Toshiba DT01ACA100 (7200 RPM) | `/mnt/storage` | App data: [[Navidrome]], [[Nextcloud]], [[Minecraft]] |
+| `/dev/sda` | 120 GB | Secureye SATA SSD | `/` (OS) | System, K3s, container images |
+| `/dev/sdb2` | 1 TB | Toshiba DT01ACA100 (7200 RPM) | `/mnt/storage` | App data: music, navidrome, nextcloud, minecraft |
 | `/dev/sdc` | 1 TB | WD Blue WD10JPVX (5400 RPM, USB 3.0) | (unmounted) | Backup / spare |
 
 Details: [[Storage]]
-
----
 
 ## Network
 
 | Interface | Spec |
 |-----------|------|
-| Ethernet | Realtek RTL8111/8168 Gigabit — `192.168.0.250` |
+| Ethernet | Realtek RTL8111/8168 Gigabit — `192.168.0.112` |
 | WiFi | Realtek RTL8821CE 802.11ac (disabled) |
 | Bluetooth | Realtek Bluetooth 4.2 (disabled) |
+| Tailscale IP | `100.110.144.56` |
+| Tailscale Host | `deb-rish.tailb96c63.ts.net` |
 
 Details: [[Networking]]
-
----
 
 ## Power
 
@@ -75,8 +68,6 @@ Details: [[Networking]]
 | Idle | ~15-18W |
 | Load | ~25-30W |
 | Annual cost | ~$20-30/year |
-
----
 
 ## OS
 

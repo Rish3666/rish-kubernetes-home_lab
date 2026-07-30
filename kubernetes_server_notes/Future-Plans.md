@@ -1,29 +1,25 @@
 # Future Plans
 
-> See also: [[Bootstrap]], [[Architecture]]
+> See also: [[Architecture]], [[Bootstrap]]
 
 ---
 
 ## High Priority
 
-| Service | Purpose | Reason |
+| Service | Purpose | Status |
 |---------|---------|--------|
-| [[Bootstrap]] | ✅ Done — one-command setup |
-| **Authentik** | SSO for all services | Single sign-on |
-| **Immich** | Photo backup | Google Photos replacement |
-
----
+| **Authentik** | SSO for all services | Planned |
+| **Immich** | Photo backup (Google Photos replacement) | Planned |
 
 ## Medium Priority
 
 | Service | Purpose |
 |---------|---------|
-| **Jellyfin** | Media server |
+| **Jellyfin** | Media server (movies/TV) |
 | **Paperless-ngx** | Document management |
-| **cert-manager** | Automatic TLS |
+| **cert-manager** | Automatic TLS certificates |
 | **Monitoring stack** | Prometheus + Grafana + Loki |
-
----
+| **Headlamp** | Kubernetes web UI |
 
 ## Low Priority
 
@@ -31,12 +27,18 @@
 |---------|---------|
 | **Longhorn** | Distributed storage |
 | **Gitea/Forgejo** | Git hosting |
-| **ArgoCD** | GitOps |
+| **ArgoCD** | GitOps deployment |
 | **Migrate Minecraft → K3s** | Full K8s adoption |
-
----
 
 ## Hardware Upgrades
 
-- **RAM** → 16GB+ (DIMM0 empty, max 32GB)
-- **USB HDD backup** → Mount `/dev/sdc` for automated backups
+| Component | Current | Target |
+|-----------|---------|--------|
+| RAM | 8 GB (1x8GB) | 16-32 GB (add second stick, DIMM0 empty, max 32GB) |
+| USB HDD backup | `/dev/sdc` unmounted | Mount for automated backups |
+
+## Infrastructure
+
+- **Automated backups** — script to snapshot PVs
+- **Health alerts** — push notifications if services go down
+- **Terraform monorepo** — IaC for the whole homelab
