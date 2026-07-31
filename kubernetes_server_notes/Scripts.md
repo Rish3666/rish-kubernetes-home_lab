@@ -40,17 +40,13 @@ The script queries `kubectl get svc -A` and writes entries like:
 Runs as `playit` user. Auto-restarts on failure.
 Service file: `/usr/lib/systemd/system/playit.service`
 
-### screenoff.service
-**Status:** Disabled (enable manually).  
-Turns off console display via `setterm`. Had to set `Environment=TERM=linux` to fix boot failure on Debian 13.
-
 ### panel-off.service
-**Status:** Enabled.  
-Turns off display backlight via sysfs at `/sys/class/graphics/fb0/blank` and `/sys/class/backlight/intel_backlight/bl_power`.
+**Status:** Enabled.
+**Purpose:** Powers off the display backlight via sysfs at `/sys/class/graphics/fb0/blank` and `/sys/class/backlight/intel_backlight/bl_power`.
 
-### panel-off.timer
-**Status:** Enabled.  
-Triggers `panel-off.service` 60 seconds after boot.
+**Why `After=multi-user.target` + `ExecStartPre=/bin/sleep 10`:** The sysfs paths don't exist until the GPU driver initializes ~10s after boot. The `sleep 10` gives the driver time; `|| true` makes the service fail gracefully if paths still don't exist. Without this, the service fails with `Directory nonexistent` on some boots.
+
+**Why no `screenoff.service`:** The old `setterm`-based service printed `Inappropriate ioctl for device` on every boot — `setterm` needs a console TTY that systemd oneshot services don't provide. It was redundant with `panel-off` and has been removed.
 
 ### Display Control
 

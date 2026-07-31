@@ -43,12 +43,14 @@ ls -la /var/lib/rancher
 # Should point to: /mnt/storage/k3s/rancher
 ```
 
-### screenoff.service fails at boot
-Add `Environment=TERM=linux` to the service unit. Required on Debian 13 (Trixie).
+### panel-off.service fails at boot
+The sysfs paths don't exist until the GPU driver loads (~10s after boot). The service has `ExecStartPre=/bin/sleep 10` and `|| true` guards, so it should always succeed. If it still fails:
+- Check paths exist: `ls /sys/class/graphics/fb0/blank /sys/class/backlight/intel_backlight/bl_power`
+- Increase the sleep in `ExecStartPre`
 
 ### Display stays on
 - `panel-off.service` uses sysfs. May not work on all hardware.
-- Try: `echo 4 > /sys/class/graphics/fb0/blank`
+- Try manually: `echo 4 | sudo tee /sys/class/graphics/fb0/blank`
 - To restore: `/home/rish/panel-on.sh`
 
 ### Docker permission denied

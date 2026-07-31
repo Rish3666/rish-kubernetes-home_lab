@@ -96,9 +96,8 @@ Details: [[Databases]]
 - Service is enabled but Minecraft is not auto-started
 
 ### 11. Display Services
-- Installs `screenoff.service` (console blanking)
-- Installs `panel-off.service` (backlight power-off)
-- Both disabled by default
+- Installs `panel-off.service` (backlight power-off via sysfs, with boot-delay guard)
+- Disabled by default — enable manually
 
 ---
 

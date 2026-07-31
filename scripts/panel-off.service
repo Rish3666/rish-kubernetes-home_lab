@@ -1,6 +1,8 @@
 [Unit]
 Description=Power off internal display panel via fbdev DPMS
+After=multi-user.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c 'echo 4 > /sys/class/graphics/fb0/blank; echo 4 > /sys/class/backlight/intel_backlight/bl_power'
+ExecStartPre=/bin/sleep 10
+ExecStart=/bin/sh -c 'echo 4 > /sys/class/graphics/fb0/blank || true; echo 4 > /sys/class/backlight/intel_backlight/bl_power || true'

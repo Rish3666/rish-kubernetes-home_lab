@@ -522,33 +522,22 @@ UNIT
 setup_display() {
   log "Step 11/11: Installing display services (disabled by default)..."
 
-  cat > /etc/systemd/system/screenoff.service << 'UNIT'
-[Unit]
-Description=Turn off console display
-
-[Service]
-Type=oneshot
-Environment=TERM=linux
-ExecStart=/usr/bin/setterm --blank force --powersave powerdown --powerdown 1
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-
   cat > /etc/systemd/system/panel-off.service << 'UNIT'
 [Unit]
 Description=Power off internal display panel via fbdev DPMS
+After=multi-user.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c 'echo 4 > /sys/class/graphics/fb0/blank; echo 4 > /sys/class/backlight/intel_backlight/bl_power'
+ExecStartPre=/bin/sleep 10
+ExecStart=/bin/sh -c 'echo 4 > /sys/class/graphics/fb0/blank || true; echo 4 > /sys/class/backlight/intel_backlight/bl_power || true'
 
 [Install]
 WantedBy=multi-user.target
 UNIT
 
   systemctl daemon-reload
-  ok "Display services installed (disabled by default). Enable with: sudo systemctl enable panel-off.service"
+  ok "Display service installed (disabled by default). Enable with: sudo systemctl enable panel-off.service"
 }
 
 # ── Summary ──────────────────────────────────────────────────────────────────
