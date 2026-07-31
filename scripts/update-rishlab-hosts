@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# update-rishlab-hosts — Sync /etc/hosts with K3s service ClusterIPs
+# Tailscale Serve backends use hostnames like glance.kube that must resolve.
+set -euo pipefail
+KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+KUBECTL=/usr/local/bin/kubectl
+
+sed -i "/# RishLab services/d" /etc/hosts
+sed -i "/\.kube/d" /etc/hosts
+
+GLANCE_IP=$($KUBECTL --kubeconfig $KUBECONFIG get svc -n glance glance -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "")
+NAVIDROME_IP=$($KUBECTL --kubeconfig $KUBECONFIG get svc -n navidrome navidrome -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "")
+NEXTCLOUD_IP=$($KUBECTL --kubeconfig $KUBECONFIG get svc -n nextcloud nextcloud -o jsonpath='{.spec.clusterIP}' 2>/dev/null || echo "")
+
+if [ -n "$GLANCE_IP" ]; then echo "$GLANCE_IP glance.kube" >> /etc/hosts; fi
+if [ -n "$NAVIDROME_IP" ]; then echo "$NAVIDROME_IP navidrome.kube" >> /etc/hosts; fi
+if [ -n "$NEXTCLOUD_IP" ]; then echo "$NEXTCLOUD_IP nextcloud.kube" >> /etc/hosts; fi

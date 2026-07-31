@@ -1,0 +1,12 @@
+[Unit]
+Description=Update /etc/hosts with RishLab Kubernetes service IPs
+After=network.target k3s.service
+Requires=k3s.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/update-rishlab-hosts
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -71,5 +71,7 @@ Located in `scripts/`:
 |------|---------|
 | `playit.service` | Alternative playit service unit (fallback) |
 | `panel-off.service` | Display power-off service unit |
-| `panel-off.timer` | Timer unit for panel-off |
+| `panel-on.sh` | Restore display backlight (undoes panel-off) |
 | `k3s.service` | K3s systemd unit |
+| `rishlab-hosts.service` | /etc/hosts updater unit |
+| `update-rishlab-hosts` | Script that syncs ClusterIPs into /etc/hosts |
