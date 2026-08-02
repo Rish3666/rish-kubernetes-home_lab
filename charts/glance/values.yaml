@@ -176,20 +176,20 @@ glance:
                 title: Services
                 sites:
                   - title: Navidrome
-                    url: https://rishlab.tailb96c63.ts.net:4533
+                    url: https://deb-rish.tailb96c63.ts.net:4533
                     check-url: http://navidrome.navidrome:4533/app/
                     icon: mdi:music
                   - title: Nextcloud
-                    url: https://rishlab.tailb96c63.ts.net:8443
+                    url: https://deb-rish.tailb96c63.ts.net:8443
                     check-url: http://nextcloud.nextcloud:8080
                     alt-status-codes: [400]
                     icon: mdi:cloud
                   - title: Glance
-                    url: https://rishlab.tailb96c63.ts.net:4443
+                    url: https://deb-rish.tailb96c63.ts.net:4443
                     check-url: http://glance.glance:8080
                     icon: mdi:monitor-dashboard
                   - title: Minecraft
-                    url: https://rishlab.tailb96c63.ts.net
+                    url: https://deb-rish.tailb96c63.ts.net
                     check-url: http://172.17.0.1:8082
                     icon: mdi:minecraft
 
